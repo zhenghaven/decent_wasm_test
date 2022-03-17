@@ -122,6 +122,10 @@ FUNCTION(add_sgx_target)
 	add_library(${_SGX_TARGET_TARGET_NAME}_trusted SHARED
 		${_SGX_TARGET_TRUSTED_SOURCE})
 
+	#C++ standard
+	set_property(TARGET ${_SGX_TARGET_TARGET_NAME}_trusted
+		PROPERTY CXX_STANDARD 11)
+
 	#defines:
 	target_compile_definitions(${_SGX_TARGET_TARGET_NAME}_trusted
 		PRIVATE SECURE_ENCLAVE_ENV INTEL_SGX ${_SGX_TARGET_TRUSTED_DEF})
@@ -183,6 +187,10 @@ FUNCTION(add_sgx_target)
 
 	add_executable(${_SGX_TARGET_TARGET_NAME}
 		${_SGX_TARGET_UNTRUSTED_SOURCE})
+
+	#C++ standard
+	set_property(TARGET ${_SGX_TARGET_TARGET_NAME}
+		PROPERTY CXX_STANDARD 11)
 
 	#defines:
 	target_compile_definitions(${_SGX_TARGET_TARGET_NAME}
