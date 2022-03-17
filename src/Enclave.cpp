@@ -10,7 +10,7 @@ static char global_heap_buf[10 * 1024 * 1024] = { 0 };
 extern "C" {
 
 typedef void (*os_print_function_t)(const char *message);
-extern void os_set_print_function(os_print_function_t pf);
+extern void wasm_os_set_print_function(os_print_function_t pf);
 extern sgx_status_t ocall_print(const char* str);
 
 void enclave_print(const char *message)
@@ -26,7 +26,7 @@ void ecall_iwasm_main(uint8_t *wasm_file_buf, size_t wasm_file_size)
 	char error_buf[128];
 	const char *exception;
 
-	os_set_print_function(enclave_print);
+	wasm_os_set_print_function(enclave_print);
 
 	memset(&init_args, 0, sizeof(RuntimeInitArgs));
 
