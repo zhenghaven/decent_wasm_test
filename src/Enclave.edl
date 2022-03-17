@@ -1,0 +1,20 @@
+/*
+ * Copyright (C) 2019 Intel Corporation.  All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ */
+
+enclave {
+	from "sgx_tstdc.edl" import *;
+
+	trusted {
+		/* define ECALLs here. */
+		public void ecall_iwasm_main(
+			[in, size=wasm_file_size]uint8_t *wasm_file_buf,
+			size_t wasm_file_size);
+	};
+
+	untrusted {
+		/* define OCALLs here. */
+		void ocall_print([in, string]const char* str);
+	};
+};
