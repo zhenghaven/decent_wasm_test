@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(decent-wasm-test LANGUAGES C CXX)
+project(decent-wasm-test LANGUAGES C CXX VERSION 0.0.1)
 
 include(FetchContent)
 include(cmake/IntelSgxAddTarget.cmake)
@@ -42,6 +42,15 @@ FetchContent_Declare(
 	SOURCE_SUBDIR  product-mini/platforms/decent-sgx
 )
 FetchContent_MakeAvailable(git_wasm_micro_runtime)
+
+# Setup WABT
+FetchContent_Declare(
+	git_wabt_decent_sgx
+	GIT_REPOSITORY https://github.com/zhenghaven/wabt.git
+	GIT_TAG        origin/decent-enclave
+	SOURCE_SUBDIR  decent/sgx
+)
+FetchContent_MakeAvailable(git_wabt_decent_sgx)
 
 # Add DebugSimulation to CMake configuration types
 set(CMAKE_CONFIGURATION_TYPES Release Debug DebugSimulation)

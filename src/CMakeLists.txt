@@ -13,7 +13,7 @@ add_sgx_target(decent_wasm_test
 						$<$<CONFIG:DebugSimulation>:${DEBUG_OPTIONS}>
 						$<$<CONFIG:Release>:${RELEASE_OPTIONS}>
 	TRUSTED_LINK_OPT   ""
-	TRUSTED_LINK_LIB   vmlib_decent_sgx
+	TRUSTED_LINK_LIB   vmlib_decent_sgx DecentWasmWat_core DecentWasmWat
 	EDL_PATH           ${CMAKE_CURRENT_LIST_DIR}/Enclave.edl
 	EDL_INCLUDE        ""
 	EDL_OUTPUT_DIR     ${CMAKE_CURRENT_LIST_DIR}

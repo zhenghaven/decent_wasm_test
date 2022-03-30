@@ -5,6 +5,8 @@
 
 #include <wasm_export.h>
 
+#include <DecentWasmWat/WasmWat.h>
+
 static char global_heap_buf[10 * 1024 * 1024] = { 0 };
 
 extern "C" {
@@ -13,12 +15,14 @@ typedef void (*os_print_function_t)(const char *message);
 extern void wasm_os_set_print_function(os_print_function_t pf);
 extern sgx_status_t ocall_print(const char* str);
 
+} // extern "C"
+
 void enclave_print(const char *message)
 {
 	ocall_print(message);
 }
 
-void ecall_iwasm_main(uint8_t *wasm_file_buf, size_t wasm_file_size)
+void ExecuteWasm(const uint8_t *wasm_file_buf, size_t wasm_file_size)
 {
 	wasm_module_t wasm_module = NULL;
 	wasm_module_inst_t wasm_module_inst = NULL;
@@ -75,6 +79,21 @@ fail2:
 fail1:
 	/* destroy runtime environment */
 	wasm_runtime_destroy();
+}
+
+extern "C" {
+
+void ecall_iwasm_main(uint8_t *wasm_file_buf, size_t wasm_file_size)
+{
+	std::vector<uint8_t> wasm(wasm_file_buf, wasm_file_buf + wasm_file_size);
+
+	std::string wat = DecentWasmWat::Wasm2Wat(
+		"filename.wasm", wasm, DecentWasmWat::Wasm2WatConfig());
+
+	std::vector<uint8_t> wasmFromWat = DecentWasmWat::Wat2Wasm(
+		"filename.wat", wat, DecentWasmWat::Wat2WasmConfig());
+
+	ExecuteWasm(wasmFromWat.data(), wasmFromWat.size());
 }
 
 } // extern "C"
