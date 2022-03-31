@@ -1,6 +1,8 @@
 #include <cstdint>
 #include <cstring>
 
+#include <vector>
+
 #include <sgx_edger8r.h>
 
 #include <wasm_export.h>

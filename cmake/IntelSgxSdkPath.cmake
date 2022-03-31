@@ -78,12 +78,16 @@ get_filename_component(INTEL_SGX_SIGNER_PATH ${INTEL_SGX_SIGNER_PATH} ABSOLUTE)
 ############################
 if(WIN32)
 
+	# NOTE: need to use /d2FH4- to disable FH4 to avoid undefined __CxxFrameHandler4
+	# https://community.intel.com/t5/Intel-Software-Guard-Extensions/Problem-Cannot-find-SGX-Debugger-in-Visual-Studio/m-p/1126761/thread-id/1785
+	# https://devblogs.microsoft.com/cppblog/making-cpp-exception-handling-smaller-x64/
+
 	#headers:
 	set(INTEL_SGX_SDK_INCLUDE_DIR "${INTEL_SGX_SDK_PATH}/include")
 	#C Flags:
-	set(INTEL_SGX_SDK_TRUSTED_C_FLAGS "")
+	set(INTEL_SGX_SDK_TRUSTED_C_FLAGS /X)
 	#CXX Flags:
-	set(INTEL_SGX_SDK_TRUSTED_CXX_FLAGS "")
+	set(INTEL_SGX_SDK_TRUSTED_CXX_FLAGS /Zc:__cplusplus /d2FH4-)
 	#Linker Flags:
 	set(INTEL_SGX_SDK_TRUSTED_LINKER_FLAGS /NODEFAULTLIB /NOENTRY)
 

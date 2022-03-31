@@ -34,6 +34,13 @@ if(MSVC)
 		CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
 endif()
 
+#Remove all standard libraries dependency here so that enclave DLL can be
+# compiled properly. And it will be added back later for non-enclave apps.
+set(UNTRUSTED_CXX_STANDARD_LIBRARIES ${CMAKE_CXX_STANDARD_LIBRARIES_INIT})
+set(UNTRUSTED_C_STANDARD_LIBRARIES ${CMAKE_C_STANDARD_LIBRARIES_INIT})
+set(CMAKE_CXX_STANDARD_LIBRARIES "")
+set(CMAKE_C_STANDARD_LIBRARIES "")
+
 # Setup WASM
 FetchContent_Declare(
 	git_wasm_micro_runtime
