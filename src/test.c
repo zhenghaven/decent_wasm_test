@@ -1,24 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
+// build:
+// clang --target=wasm32 --no-standard-libraries -Wl,--entry=main -Wl,--allow-undefined-file=decent_wasm_native_list.txt -o test.wasm test.c
 
-int main(int argc, char **argv)
+extern int decent_wasm_sum(int a, int b);
+extern void decent_wasm_print(char * msg);
+
+int main()
 {
-	char *buf;
-
-	printf("Hello world!\n");
-
-	buf = malloc(1024);
-	if (!buf) {
-		printf("malloc buf failed\n");
-		return -1;
-	}
-
-	printf("buf ptr: %p\n", buf);
-
-	sprintf(buf, "%s", "1234\n");
-	printf("buf: %s", buf);
-
-	free(buf);
+	decent_wasm_print("Hello World!\n");
 	return 0;
 }
-

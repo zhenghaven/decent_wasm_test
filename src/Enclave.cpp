@@ -17,12 +17,14 @@ typedef void (*os_print_function_t)(const char *message);
 extern void wasm_os_set_print_function(os_print_function_t pf);
 extern sgx_status_t ocall_print(const char* str);
 
-} // extern "C"
-
 void enclave_print(const char *message)
 {
 	ocall_print(message);
 }
+
+extern void decent_wasm_reg_natives();
+
+} // extern "C"
 
 void ExecuteWasm(const uint8_t *wasm_file_buf, size_t wasm_file_size)
 {
@@ -46,6 +48,8 @@ void ExecuteWasm(const uint8_t *wasm_file_buf, size_t wasm_file_size)
 		ocall_print("\n");
 		return;
 	}
+
+	decent_wasm_reg_natives();
 
 	/* load WASM module */
 	if (!(wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size,

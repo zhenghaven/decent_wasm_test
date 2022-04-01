@@ -1,0 +1,2 @@
+decent_wasm_sum
+decent_wasm_print
