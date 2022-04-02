@@ -21,3 +21,5 @@ add_sgx_target(decent_wasm_test
 	SIGN_CONFIG        ${CMAKE_CURRENT_LIST_DIR}/Enclave.config.xml
 	SIGN_KEY           ${CMAKE_CURRENT_LIST_DIR}/Enclave_private.pem
 )
+
+add_executable(test_instrumentation TestInstrumentation.cpp)
