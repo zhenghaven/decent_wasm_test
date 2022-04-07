@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.18)
 
 project(decent-wasm-test LANGUAGES C CXX VERSION 0.0.1)
 
-include(FetchContent)
 include(cmake/IntelSgxAddTarget.cmake)
 
 # Compile options
@@ -21,6 +20,10 @@ endif()
 
 set(DEBUG_OPTIONS ${COMMON_OPTIONS} ${DEBUG_OPTIONS})
 set(RELEASE_OPTIONS ${COMMON_OPTIONS} ${RELEASE_OPTIONS})
+
+##################################################
+# Setup CMake environment for enclave targets
+##################################################
 
 #Removed Basic Runtime Checks in MSVC
 if(MSVC)
@@ -41,6 +44,22 @@ set(UNTRUSTED_C_STANDARD_LIBRARIES ${CMAKE_C_STANDARD_LIBRARIES_INIT})
 set(CMAKE_CXX_STANDARD_LIBRARIES "")
 set(CMAKE_C_STANDARD_LIBRARIES "")
 
+# Add DebugSimulation to CMake configuration types
+set(CMAKE_CONFIGURATION_TYPES Release Debug DebugSimulation)
+set_property(GLOBAL PROPERTY DEBUG_CONFIGURATIONS Debug DebugSimulation)
+
+set(CMAKE_CXX_FLAGS_DEBUGSIMULATION           ${CMAKE_CXX_FLAGS_DEBUG})
+set(CMAKE_C_FLAGS_DEBUGSIMULATION             ${CMAKE_C_FLAGS_DEBUG})
+set(CMAKE_EXE_LINKER_FLAGS_DEBUGSIMULATION    ${CMAKE_EXE_LINKER_FLAGS_DEBUG})
+set(CMAKE_SHARED_LINKER_FLAGS_DEBUGSIMULATION ${CMAKE_SHARED_LINKER_FLAGS_DEBUG})
+set(CMAKE_STATIC_LINKER_FLAGS_DEBUGSIMULATION ${CMAKE_STATIC_LINKER_FLAGS_DEBUG})
+
+##################################################
+# Fetch external dependencies
+##################################################
+
+include(FetchContent)
+
 # Setup WASM
 FetchContent_Declare(
 	git_wasm_micro_runtime
@@ -59,15 +78,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(git_wabt_decent_sgx)
 
-# Add DebugSimulation to CMake configuration types
-set(CMAKE_CONFIGURATION_TYPES Release Debug DebugSimulation)
-set_property(GLOBAL PROPERTY DEBUG_CONFIGURATIONS Debug DebugSimulation)
+##################################################
+# Add source directories
+##################################################
 
-set(CMAKE_CXX_FLAGS_DEBUGSIMULATION           ${CMAKE_CXX_FLAGS_DEBUG})
-set(CMAKE_C_FLAGS_DEBUGSIMULATION             ${CMAKE_C_FLAGS_DEBUG})
-set(CMAKE_EXE_LINKER_FLAGS_DEBUGSIMULATION    ${CMAKE_EXE_LINKER_FLAGS_DEBUG})
-set(CMAKE_SHARED_LINKER_FLAGS_DEBUGSIMULATION ${CMAKE_SHARED_LINKER_FLAGS_DEBUG})
-set(CMAKE_STATIC_LINKER_FLAGS_DEBUGSIMULATION ${CMAKE_STATIC_LINKER_FLAGS_DEBUG})
-
-# Add source dirs
 add_subdirectory(src)
