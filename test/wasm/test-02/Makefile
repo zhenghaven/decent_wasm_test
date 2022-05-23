@@ -8,6 +8,7 @@ PWD      := $(shell pwd)
 
 ENTRY_FUNCTION_NAME   := decent_wasm_injected_main
 WASM_NATIVE_FUNC_LIST := $(PWD)/../decent_wasm_natives.syms
+INCLUDE_DIRECTORIES   := -I $(PWD)/../include
 
 TARGET_NAME           := wasm32-unknown-emscripten
 LIB_SUBDIR            := lib/wasm32-emscripten
@@ -17,6 +18,7 @@ SYSROOT_PATH          := /usr/share/emscripten/cache/sysroot
 COMPILE_FLAG := -c \
 				-O3 \
 				--target=$(TARGET_NAME) \
+				$(INCLUDE_DIRECTORIES) \
 				--sysroot=$(SYSROOT_PATH) \
 				-Xclang -iwithsysroot/include/SDL \
 				-Xclang -iwithsysroot/include/compat \
@@ -25,6 +27,7 @@ COMPILE_FLAG := -c \
 
 LINKER_FLAG  := --entry=$(ENTRY_FUNCTION_NAME) \
 				--allow-undefined-file=$(WASM_NATIVE_FUNC_LIST) \
+				--export=decent_wasm_prerequisite_imports \
 				-L$(SYSROOT_PATH)/$(LIB_SUBDIR) \
 				-lc \
 				-lc++-except \
@@ -42,7 +45,7 @@ all: test.wasm test.wat
 	$(WASMLD) $(LINKER_FLAG) -o $@ $?
 
 %.obj: %.cpp
-	$(EMCC) -version
+	$(EMCC) --version
 	$(CLANGXX) $(COMPILE_FLAG) -o $@ $?
 
 clean:

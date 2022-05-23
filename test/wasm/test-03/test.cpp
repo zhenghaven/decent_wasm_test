@@ -5,11 +5,8 @@
 #include <string>
 #include <vector>
 
-extern "C"
-{
-	int decent_wasm_sum(int a, int b);// { return 0; }
-	void decent_wasm_print(const char * msg);// {}
-}
+#include "DecentWasmApi.hpp"
+#include "DecentWasmImpl.hpp"
 
 extern "C" int decent_wasm_injected_main(
 	const uint8_t* eIdSec, size_t eIdSecSize,
