@@ -54,6 +54,8 @@ extern "C" int32_t decent_wasm_injected_main(
 	decent_wasm_print(outStr.c_str());
 	outStr = "Msg Sec Size: " + std::to_string(msgSecSize) + "\n";
 	decent_wasm_print(outStr.c_str());
+	outStr = "Threshold: " + std::to_string(threshold) + "\n";
+	decent_wasm_print(outStr.c_str());
 
 	printLen = eIdSecSize <= 10 ? eIdSecSize : 10;
 	outStr =
