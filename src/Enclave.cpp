@@ -9,6 +9,8 @@
 
 #include <DecentWasmWat/WasmWat.h>
 
+#include "DecentWasmRtSupport.hpp"
+
 static char global_heap_buf[10 * 1024 * 1024] = { 0 };
 
 extern "C" {
@@ -23,18 +25,15 @@ void enclave_print(const char *message)
 }
 
 extern void decent_wasm_reg_natives();
+extern void decent_wasi_reg_natives();
 
 } // extern "C"
 
-void ExecuteWasm(const uint8_t *wasm_file_buf, size_t wasm_file_size)
+void InitWasmRuntime()
 {
-	wasm_module_t wasm_module = NULL;
-	wasm_module_inst_t wasm_module_inst = NULL;
-	RuntimeInitArgs init_args;
-	char error_buf[128];
-	const char *exception;
-
 	wasm_os_set_print_function(enclave_print);
+
+	RuntimeInitArgs init_args;
 
 	memset(&init_args, 0, sizeof(RuntimeInitArgs));
 
@@ -43,13 +42,63 @@ void ExecuteWasm(const uint8_t *wasm_file_buf, size_t wasm_file_size)
 	init_args.mem_alloc_option.pool.heap_size = sizeof(global_heap_buf);
 
 	/* initialize runtime environment */
-	if (!wasm_runtime_full_init(&init_args)) {
-		ocall_print("Init runtime environment failed.");
-		ocall_print("\n");
-		return;
+	if (!wasm_runtime_full_init(&init_args))
+	{
+		throw std::runtime_error("Init runtime environment failed");
 	}
 
+	decent_wasi_reg_natives();
 	decent_wasm_reg_natives();
+}
+
+uint32_t ExecuteDecentWasmMain(
+	const std::vector<uint8_t>& wasmBuf,
+	const std::vector<uint8_t>& eventId,
+	const std::vector<uint8_t>& msgCont,
+	uint64_t threshold)
+{
+	using MainRetType = std::tuple<int32_t>;
+	static constexpr uint32_t stackSize = 16 * 1024; // 16 KB
+	static constexpr uint32_t heapSize  = 16 * 1024; // 16 KB
+
+	if (eventId.size() > std::numeric_limits<uint32_t>::max() ||
+		msgCont.size() > std::numeric_limits<uint32_t>::max())
+	{
+		throw std::invalid_argument("The message received is too large");
+	}
+
+	Decent::WasmRt::WasmModule mod =
+		Decent::WasmRt::WasmModule::Load(wasmBuf);
+
+	Decent::WasmRt::WasmModuleInstance inst =
+		mod.Instantiate(stackSize, heapSize);
+
+	Decent::WasmRt::WasmExecEnv execEnv =
+		inst.CreateExecEnv(stackSize);
+
+	// Decent::WasmRt::WasmModMem<uint64_t> testMem =
+	// 	inst.Malloc<uint64_t>();
+
+	Decent::WasmRt::WasmModMem<uint8_t[]> eventIdMem =
+		inst.Malloc<uint8_t[]>(eventId.size());
+	std::copy(eventId.begin(), eventId.end(), eventIdMem.get());
+
+	Decent::WasmRt::WasmModMem<uint8_t[]> msgContMem =
+		inst.Malloc<uint8_t[]>(msgCont.size());
+	std::copy(msgCont.begin(), msgCont.end(), msgContMem.get());
+
+	auto retVals = execEnv.ExecFunc<MainRetType>("decent_wasm_injected_main",
+		eventIdMem, eventIdMem.size(), msgContMem, msgContMem.size(), threshold);
+
+	return std::get<0>(retVals);
+}
+
+void ExecuteWasm(const uint8_t *wasm_file_buf, size_t wasm_file_size)
+{
+	wasm_module_t wasm_module = NULL;
+	wasm_module_inst_t wasm_module_inst = NULL;
+	char error_buf[128];
+	const char *exception;
 
 	/* load WASM module */
 	if (!(wasm_module = wasm_runtime_load(wasm_file_buf, wasm_file_size,
@@ -91,15 +140,34 @@ extern "C" {
 
 void ecall_iwasm_main(uint8_t *wasm_file_buf, size_t wasm_file_size)
 {
-	std::vector<uint8_t> wasm(wasm_file_buf, wasm_file_buf + wasm_file_size);
+	try
+	{
+		InitWasmRuntime();
 
-	std::string wat = DecentWasmWat::Wasm2Wat(
-		"filename.wasm", wasm, DecentWasmWat::Wasm2WatConfig());
+		std::vector<uint8_t> wasm(wasm_file_buf, wasm_file_buf + wasm_file_size);
 
-	std::vector<uint8_t> wasmFromWat = DecentWasmWat::Wat2Wasm(
-		"filename.wat", wat, DecentWasmWat::Wat2WasmConfig());
+		// std::string wat = DecentWasmWat::Wasm2Wat(
+		// 	"filename.wasm", wasm, DecentWasmWat::Wasm2WatConfig());
 
-	ExecuteWasm(wasmFromWat.data(), wasmFromWat.size());
+		std::vector<uint8_t> wasmFromWat = wasm;
+			// DecentWasmWat::Wat2Wasm(
+			// "filename.wat", wat, DecentWasmWat::Wat2WasmConfig());
+
+		// ExecuteWasm(wasmFromWat.data(), wasmFromWat.size());
+
+		std::vector<uint8_t> eventId = { 12U, 34U, 56U, 78U, 90U, };
+		std::vector<uint8_t> msgCont = { 98U, 76U, 54U, 32U, 10U, };
+		uint64_t threshold = 1000;
+		auto retVal =
+			ExecuteDecentWasmMain(wasmFromWat, eventId, msgCont, threshold);
+
+		auto retMsg = "WASM code returned: " + std::to_string(retVal) + "\n";
+		enclave_print(retMsg.c_str());
+	}
+	catch(const std::exception& e)
+	{
+		ocall_print(e.what());
+	}
 }
 
 } // extern "C"

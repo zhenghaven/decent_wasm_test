@@ -7,10 +7,10 @@
 #include "DecentWasmApi.hpp"
 #include "DecentWasmImpl.hpp"
 
-extern "C" int decent_wasm_injected_main(
-	const uint8_t* eIdSec, size_t eIdSecSize,
-	const uint8_t* msgSec, size_t msgSecSize,
-	size_t counterThreshold
+extern "C" int32_t decent_wasm_injected_main(
+	const uint8_t* eIdSec, uint32_t eIdSecSize,
+	const uint8_t* msgSec, uint32_t msgSecSize,
+	uint64_t threshold
 )
 {
 	decent_wasm_print("Hello World!\n");

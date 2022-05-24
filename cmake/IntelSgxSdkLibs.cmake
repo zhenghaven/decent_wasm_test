@@ -341,7 +341,7 @@ if(NOT TARGET IntelSGX::Untrusted::Libs)
 	add_library(IntelSGX::Untrusted::Libs INTERFACE IMPORTED GLOBAL)
 	target_include_directories(IntelSGX::Untrusted::Libs INTERFACE ${INTEL_SGX_SDK_INCLUDE_DIR})
 	target_link_libraries(IntelSGX::Untrusted::Libs INTERFACE
-		IntelSGX::Untrusted::service
+		# IntelSGX::Untrusted::service (Deprecated with EPID)
 		IntelSGX::Untrusted::rts
 		IntelSGX::Untrusted::key_exchange
 		IntelSGX::Untrusted::file_system

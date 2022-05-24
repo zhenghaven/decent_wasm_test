@@ -8,6 +8,7 @@ add_sgx_target(decent_wasm_test
 	UNTRUSTED_LINK_OPT ""
 	UNTRUSTED_LINK_LIB ""
 	TRUSTED_SOURCE      ${CMAKE_CURRENT_LIST_DIR}/Enclave.cpp
+						${CMAKE_CURRENT_LIST_DIR}/decent_wasi_natives.c
 						${CMAKE_CURRENT_LIST_DIR}/decent_wasm_natives.c
 	TRUSTED_DEF        ""
 	TRUSTED_COMP_OPT   $<$<CONFIG:Debug>:${DEBUG_OPTIONS}>

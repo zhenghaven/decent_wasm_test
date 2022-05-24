@@ -17,27 +17,27 @@ void decent_wasm_print(wasm_exec_env_t exec_env, char * msg)
 	enclave_print(msg);
 }
 
-static NativeSymbol s_DecentWasmNatives[] =
+static NativeSymbol gs_DecentWasmNatives[] =
 {
 	{
-		"decent_wasm_sum",            // WASM function name
-		decent_wasm_sum,  // the native function pointer
-		"(ii)i",          // the function prototype signature
+		"decent_wasm_sum", // WASM function name
+		decent_wasm_sum,   // the native function pointer
+		"(ii)i",           // the function prototype signature
 		NULL,
 	},
 	{
-		"decent_wasm_print",            // WASM function name
-		decent_wasm_print,  // the native function pointer
-		"($)",              // the function prototype signature
+		"decent_wasm_print", // WASM function name
+		decent_wasm_print,   // the native function pointer
+		"($)",               // the function prototype signature
 		NULL,
 	}
 };
 
 void decent_wasm_reg_natives()
 {
-	const int symNum = sizeof(s_DecentWasmNatives) / sizeof(NativeSymbol);
+	const int symNum = sizeof(gs_DecentWasmNatives) / sizeof(NativeSymbol);
 	if (!wasm_runtime_register_natives("env",
-		s_DecentWasmNatives, symNum))
+		gs_DecentWasmNatives, symNum))
 	{
 		enclave_print("ERROR: Failed to register Decent WASM native symbols!");
 	}
