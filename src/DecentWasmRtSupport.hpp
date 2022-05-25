@@ -558,13 +558,13 @@ struct ToWasmVal<WasmModMem<_T> > : ToWasmVal<typename WasmModMem<_T>::Base>
 {}; // struct ToWasmVal<WasmModMem<_T> >
 
 template<size_t _TotalSize>
-inline void ParamPack2WasmValList(wasm_val_t (&wasmArg)[_TotalSize])
+inline void ParamPack2WasmValList(wasm_val_t (&wasmArg)[_TotalSize + 1])
 {
 	return;
 }
 
 template<size_t _TotalSize, typename _Arg1, typename... _Args>
-inline void ParamPack2WasmValList(wasm_val_t (&wasmArg)[_TotalSize],
+inline void ParamPack2WasmValList(wasm_val_t (&wasmArg)[_TotalSize + 1],
 	_Arg1&& arg1, _Args&&... args)
 {
 	static constexpr size_t left = 1 + sizeof...(_Args);
@@ -593,7 +593,7 @@ struct WasmValList2Tuple<_TupleType, 0>
 {
 	void operator()(
 		_TupleType& tp,
-		const wasm_val_t (&wasmArg)[std::tuple_size<_TupleType>::value])
+		const wasm_val_t (&wasmArg)[std::tuple_size<_TupleType>::value + 1])
 	{
 		return;
 	}
@@ -604,7 +604,7 @@ struct WasmValList2Tuple
 {
 	void operator()(
 	_TupleType& tp,
-	const wasm_val_t (&wasmArg)[std::tuple_size<_TupleType>::value])
+	const wasm_val_t (&wasmArg)[std::tuple_size<_TupleType>::value + 1])
 	{
 		static constexpr size_t totalSize = std::tuple_size<_TupleType>::value;
 		static_assert(_ItemLeft <= totalSize,
@@ -650,8 +650,8 @@ inline _RetTuple WasmExecEnv::ExecFunc(
 	static constexpr uint32_t numArg = sizeof...(_Args);
 
 	_RetTuple retVals;
-	wasm_val_t wasmRes[numRes];
-	wasm_val_t wasmArg[numArg];
+	wasm_val_t wasmRes[numRes + 1];
+	wasm_val_t wasmArg[numArg + 1];
 
 	Internal::ParamPack2WasmValList<numArg>(
 		wasmArg, std::forward<_Args>(args)...);
@@ -659,6 +659,13 @@ inline _RetTuple WasmExecEnv::ExecFunc(
 	wasm_module_inst_t   moduleInst = wasm_runtime_get_module_inst(get());
 	wasm_function_inst_t targetFunc =
 		wasm_runtime_lookup_function(moduleInst, funcName.c_str(), nullptr);
+	if (targetFunc == nullptr)
+	{
+		throw std::invalid_argument(
+			"Could not find the function named " +
+			funcName +
+			" in the given WASM module");
+	}
 	// may be needed for future work on multi-mod:
 	// wasm_module_inst_t   targetInst = moduleInst;
 

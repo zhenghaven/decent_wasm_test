@@ -49,4 +49,4 @@ all: test.wasm test.wat
 clean:
 	rm -f *.wat *.wasm *.o *.obj
 
-.PHONY : clean
+.PHONY : all clean

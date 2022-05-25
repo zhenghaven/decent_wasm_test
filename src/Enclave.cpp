@@ -51,13 +51,14 @@ void InitWasmRuntime()
 	decent_wasm_reg_natives();
 }
 
-uint32_t ExecuteDecentWasmMain(
+std::tuple<uint32_t, uint64_t> ExecuteDecentWasmMain(
 	const std::vector<uint8_t>& wasmBuf,
 	const std::vector<uint8_t>& eventId,
 	const std::vector<uint8_t>& msgCont,
 	uint64_t threshold)
 {
 	using MainRetType = std::tuple<int32_t>;
+	using CtrRetType = std::tuple<int64_t>;
 	static constexpr uint32_t stackSize = 16 * 1024; // 16 KB
 	static constexpr uint32_t heapSize  = 16 * 1024; // 16 KB
 
@@ -87,10 +88,14 @@ uint32_t ExecuteDecentWasmMain(
 		inst.Malloc<uint8_t[]>(msgCont.size());
 	std::copy(msgCont.begin(), msgCont.end(), msgContMem.get());
 
-	auto retVals = execEnv.ExecFunc<MainRetType>("decent_wasm_injected_main",
+	auto mainRetVals = execEnv.ExecFunc<MainRetType>("decent_wasm_injected_main",
 		eventIdMem, eventIdMem.size(), msgContMem, msgContMem.size(), threshold);
 
-	return std::get<0>(retVals);
+	auto ictrRetVals = execEnv.ExecFunc<CtrRetType>("decent_wasm_get_icounter");
+
+	return std::make_tuple(
+		std::get<0>(mainRetVals),
+		std::get<0>(ictrRetVals));
 }
 
 void ExecuteWasm(const uint8_t *wasm_file_buf, size_t wasm_file_size)
@@ -158,15 +163,22 @@ void ecall_iwasm_main(uint8_t *wasm_file_buf, size_t wasm_file_size)
 		std::vector<uint8_t> eventId = { 12U, 34U, 56U, 78U, 90U, };
 		std::vector<uint8_t> msgCont = { 98U, 76U, 54U, 32U, 10U, };
 		uint64_t threshold = 1000;
-		auto retVal =
+
+		uint32_t mainRet = 0;
+		uint64_t ictrRet = 0;
+		std::tie(mainRet, ictrRet) =
 			ExecuteDecentWasmMain(wasmFromWat, eventId, msgCont, threshold);
 
-		auto retMsg = "WASM code returned: " + std::to_string(retVal) + "\n";
+		std::string retMsg;
+		retMsg = "WASM code returned: " + std::to_string(mainRet) + "\n";
+		enclave_print(retMsg.c_str());
+		retMsg = "WASM icounter val:  " + std::to_string(ictrRet) + "\n";
 		enclave_print(retMsg.c_str());
 	}
 	catch(const std::exception& e)
 	{
 		ocall_print(e.what());
+		ocall_print("\n");
 	}
 }
 
