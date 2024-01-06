@@ -9,6 +9,7 @@ extern void enclave_print(const char *message);
 static void
 wasi_proc_exit(wasm_exec_env_t exec_env, uint32_t rval)
 {
+    (void)rval;
     wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
     /* Here throwing exception is just to let wasm app exit,
        the upper layer should clear the exception and return

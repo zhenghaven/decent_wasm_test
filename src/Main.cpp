@@ -80,14 +80,18 @@ static void enclave_init(sgx_enclave_id_t *p_eid)
 	std::vector<uint8_t> tokenBuf;
 	try
 	{
-		tokenBuf = ReadFile2Buffer(INTEL_SGX_ECTOKEN);
+		tokenBuf = ReadFile2Buffer(DECENT_ENCLAVE_PLATFORM_SGX_TOKEN);
 	}
 	catch(const std::runtime_error&)
 	{}
 
 	ret = sgx_create_enclave(
-		INTEL_SGX_TRUSTED_LIB, SGX_DEBUG_FLAG, &token, &updated,
-		p_eid, nullptr);
+		DECENT_ENCLAVE_PLATFORM_SGX_IMAGE,
+		1 /*SGX_DEBUG_FLAG*/,
+		&token,
+		&updated,
+		p_eid,
+		nullptr);
 
 	if (ret != SGX_SUCCESS) {
 		throw std::runtime_error("Failed to create enclave");
@@ -97,7 +101,7 @@ static void enclave_init(sgx_enclave_id_t *p_eid)
 	{
 		tokenBuf.resize(std::distance(std::begin(token), std::end(token)));
 		std::copy(std::begin(token), std::end(token), tokenBuf.begin());
-		WriteBuffer2File(INTEL_SGX_ECTOKEN, tokenBuf);
+		WriteBuffer2File(DECENT_ENCLAVE_PLATFORM_SGX_TOKEN, tokenBuf);
 	}
 }
 
@@ -107,7 +111,7 @@ int main(int argc, char**argv)
 	{
 		std::cerr << "ERROR: "
 			<< "Please provide a path to WASM file." << std::endl;
-		return -1;
+		//return -1;
 	}
 
 	std::string wasmFilename = argv[1];
@@ -126,7 +130,7 @@ int main(int argc, char**argv)
 	if(ret != SGX_SUCCESS)
 	{
 		std::cerr << "ERROR: "
-			<< "Failed to run iwasm main." << std::endl;
+			<< "Failed to run ecall_iwasm_main." << std::endl;
 	}
 
 	// destroy enclave

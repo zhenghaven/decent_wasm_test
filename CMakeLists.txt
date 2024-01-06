@@ -1,19 +1,27 @@
+# Copyright (c) 2023 Haofan Zheng
+# Use of this source code is governed by an MIT-style
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT.
+
+
 cmake_minimum_required(VERSION 3.18)
 
 project(decent-wasm-test LANGUAGES C CXX VERSION 0.0.1)
 
-include(cmake/IntelSgxAddTarget.cmake)
-
-# Compile options
+################################################################################
+# Set compile options
+################################################################################
 
 if(MSVC)
-	set(COMMON_OPTIONS /W3 /wd4996 /we4239 /we4002 /we4700 /we4305 /EHsc /MP
-		/GR /Zc:__cplusplus)
+	set(COMMON_OPTIONS /W4 /WX /EHsc /MP /GR /Zc:__cplusplus
+		/wd4815 # Mitigate issue in SGXSDK about zero-sized array
+		/wd4310 # Mitigate issue in SGXSDK about cast truncates in #include <limits>
+	)
 	set(DEBUG_OPTIONS /MTd /Od /Zi /DDEBUG)
 	set(RELEASE_OPTIONS /MT /Ox /Oi /Ob2 /fp:fast)# /DNDEBUG
 #	set(CMAKE_EXE_LINKER_FLAGS_DEBUG ${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG)
 else()
-	set(COMMON_OPTIONS -pthread)
+	set(COMMON_OPTIONS -pthread -Wall -Wextra -Werror)
 	set(DEBUG_OPTIONS -O0 -g -DDEBUG)
 	set(RELEASE_OPTIONS -O2) #-DNDEBUG defined by default
 endif()
@@ -21,9 +29,13 @@ endif()
 set(DEBUG_OPTIONS ${COMMON_OPTIONS} ${DEBUG_OPTIONS})
 set(RELEASE_OPTIONS ${COMMON_OPTIONS} ${RELEASE_OPTIONS})
 
-##################################################
+if(MSVC)
+	set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG")
+endif()
+
+################################################################################
 # Setup CMake environment for enclave targets
-##################################################
+################################################################################
 
 #Removed Basic Runtime Checks in MSVC
 if(MSVC)
@@ -60,6 +72,15 @@ set(CMAKE_STATIC_LINKER_FLAGS_DEBUGSIMULATION ${CMAKE_STATIC_LINKER_FLAGS_DEBUG}
 
 include(FetchContent)
 
+## SimpleCMakeScripts
+FetchContent_Declare(
+	git_simplecmakescripts
+	GIT_REPOSITORY https://github.com/zhenghaven/SimpleCMakeScripts.git
+	GIT_TAG        dev
+)
+FetchContent_MakeAvailable(git_simplecmakescripts)
+simplecmakescripts_enable()
+
 # Setup WASM
 FetchContent_Declare(
 	git_wasm_micro_runtime
@@ -82,4 +103,5 @@ FetchContent_MakeAvailable(git_wabt_decent_sgx)
 # Add source directories
 ##################################################
 
+add_subdirectory(include)
 add_subdirectory(src)
