@@ -16,6 +16,15 @@
 namespace DecentWasmRuntime
 {
 
+inline wasm_val_t ToWasmVal(uint32_t val) noexcept
+{
+	wasm_val_t wasmVal;
+	wasmVal.kind = wasm_valkind_enum::WASM_I32;
+	reinterpret_cast<uint32_t&>(wasmVal.of.i32) = val;
+	return wasmVal;
+}
+
+
 inline wasm_val_t ToWasmVal(int32_t val) noexcept
 {
 	wasm_val_t wasmVal;
@@ -23,6 +32,16 @@ inline wasm_val_t ToWasmVal(int32_t val) noexcept
 	wasmVal.of.i32 = val;
 	return wasmVal;
 }
+
+
+inline wasm_val_t ToWasmVal(uint64_t val) noexcept
+{
+	wasm_val_t wasmVal;
+	wasmVal.kind = wasm_valkind_enum::WASM_I64;
+	reinterpret_cast<uint64_t&>(wasmVal.of.i64) = val;
+	return wasmVal;
+}
+
 
 inline wasm_val_t ToWasmVal(int64_t val) noexcept
 {
@@ -34,7 +53,23 @@ inline wasm_val_t ToWasmVal(int64_t val) noexcept
 
 
 template<typename _DestIt>
+inline _DestIt PushWasmVal(_DestIt dest, uint32_t val)
+{
+	*dest++ = ToWasmVal(val);
+	return dest;
+}
+
+
+template<typename _DestIt>
 inline _DestIt PushWasmVal(_DestIt dest, int32_t val)
+{
+	*dest++ = ToWasmVal(val);
+	return dest;
+}
+
+
+template<typename _DestIt>
+inline _DestIt PushWasmVal(_DestIt dest, uint64_t val)
 {
 	*dest++ = ToWasmVal(val);
 	return dest;

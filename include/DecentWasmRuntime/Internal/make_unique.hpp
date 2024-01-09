@@ -11,7 +11,7 @@
 //
 
 
-// Additional notes for SimpleJson:
+// Additional notes:
 // C++11 does not support make_unique, thus, we need to include it manually.
 // The definition of make_unique is from LLVM.
 // To avoid conflicting the definition in std namespace,

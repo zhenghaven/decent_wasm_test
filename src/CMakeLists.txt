@@ -27,6 +27,7 @@ decent_enclave_add_target_sgx(decent_wasm_test
 		${CMAKE_CURRENT_LIST_DIR}/Enclave.cpp
 		${CMAKE_CURRENT_LIST_DIR}/decent_wasi_natives.c
 		${CMAKE_CURRENT_LIST_DIR}/decent_wasm_natives.c
+		${CMAKE_CURRENT_LIST_DIR}/DecentWasmNatives.cpp
 	TRUSTED_DEF
 		DECENTENCLAVE_DEV_LEVEL_0
 	TRUSTED_INCL_DIR

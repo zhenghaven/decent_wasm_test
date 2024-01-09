@@ -9,6 +9,7 @@
 
 #include <DecentWasmWat/WasmWat.h>
 
+#include <DecentWasmRuntime/ExecEnvUserData.hpp>
 #include <DecentWasmRuntime/Internal/make_unique.hpp>
 #include <DecentWasmRuntime/WasmRuntimeStaticHeap.hpp>
 #include <DecentWasmRuntime/SharedWasmRuntime.hpp>
@@ -35,20 +36,9 @@ static inline int32_t ExecDecentInstrumentedWasm(
 	uint64_t threshold
 )
 {
-	using MainRetType = std::tuple<int32_t>;
+	using namespace DecentWasmRuntime;
 
-	if (eventId.size() > static_cast<uint64_t>(std::numeric_limits<int32_t>::max()))
-	{
-		throw std::invalid_argument("The event ID received is too large");
-	}
-	if (msgContent.size() > static_cast<uint64_t>(std::numeric_limits<int32_t>::max()))
-	{
-		throw std::invalid_argument("The message received is too large");
-	}
-	if (threshold > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()))
-	{
-		throw std::invalid_argument("The given threshold is over the maximum value");
-	}
+	using MainRetType = std::tuple<int32_t>;
 
 	auto wasmModule = wasmRt.LoadModule(wasmBytecode);
 
@@ -58,18 +48,18 @@ static inline int32_t ExecDecentInstrumentedWasm(
 	);
 	auto execEnv = wasmInst.CreateExecEnv(512 * 1024); // stack size
 
-	auto wasmEvId = wasmInst.NewMem<uint8_t[]>(eventId.size());
-	EnclavePrint("wasmEvId @ " + std::to_string(wasmEvId.GetWasmPtr()) + "\n");
-	wasmEvId.CopyContainer(eventId);
-	auto wasmMsgContent = wasmInst.NewMem<uint8_t[]>(msgContent.size());
-	EnclavePrint("wasmMsgContent @ " + std::to_string(wasmMsgContent.GetWasmPtr()) + "\n");
-	wasmMsgContent.CopyContainer(msgContent);
+	std::unique_ptr<ExecEnvUserData> execEnvUserData =
+		Internal::make_unique<ExecEnvUserData>();
+	execEnvUserData->SetEventId(eventId);
+	execEnvUserData->SetEventData(msgContent);
+	execEnv->SetUserData(std::move(execEnvUserData));
+	// NOTE: !! execEnvUserData is invalid after this point !!
 
 	auto mainRetVals = execEnv->ExecFunc<MainRetType>(
 		"decent_wasm_injected_main",
-		wasmEvId, static_cast<int32_t>(wasmEvId.size()),
-		wasmMsgContent, static_cast<int32_t>(wasmMsgContent.size()),
-		static_cast<int64_t>(threshold)
+		static_cast<uint32_t>(eventId.size()),
+		static_cast<uint32_t>(msgContent.size()),
+		static_cast<uint64_t>(threshold)
 	);
 
 	return std::get<0>(mainRetVals);
@@ -85,8 +75,12 @@ void ecall_iwasm_main(uint8_t *wasm_file_buf, size_t wasm_file_size)
 	{
 		// InitWasmRuntime();
 
-		std::vector<uint8_t> eventId = { 12U, 34U, 56U, 78U, 90U, };
-		std::vector<uint8_t> msgContent = { 98U, 76U, 54U, 32U, 10U, };
+		std::vector<uint8_t> eventId = {
+			'D', 'e', 'c', 'e', 'n', 't', '\0'
+		};
+		std::vector<uint8_t> msgContent = {
+			'E', 'v', 'e', 'n', 't', 'M', 'e', 's', 's', 'a', 'g', 'e', '\0'
+		};
 		uint64_t threshold = 1000000000;
 
 		std::vector<uint8_t> wasmBytecode(

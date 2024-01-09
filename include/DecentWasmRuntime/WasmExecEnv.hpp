@@ -9,10 +9,12 @@
 #include "WamrUniquePtr.hpp"
 
 #include <memory>
+#include <string>
 
 #include <wasm_export.h>
 
 #include "Exception.hpp"
+#include "ExecEnvUserData.hpp"
 #include "FuncUtils.hpp"
 #include "WasmModuleInstance.hpp"
 
@@ -38,10 +40,13 @@ class WasmExecEnv :
 {
 public: // static members
 
+	using Self = WasmExecEnv;
 	using Base = WamrUniquePtr<
 		typename std::remove_pointer<wasm_exec_env_t>::type,
 		WasmExecEnvDestroy
 	>;
+	typedef typename Base::pointer        pointer;
+	typedef typename Base::const_pointer  const_pointer;
 
 	static WasmExecEnv Create(
 		std::shared_ptr<WasmModuleInstance> moduleInst,
@@ -61,6 +66,22 @@ public: // static members
 		return WasmExecEnv(ptr, moduleInst);
 	}
 
+	static Self& FromUserData(pointer exec_env)
+	{
+		return *static_cast<Self*>(wasm_runtime_get_user_data(exec_env));
+	}
+
+	static const Self& FromUserData(const_pointer exec_env)
+	{
+		wasm_exec_env_t tmpPtr = const_cast<wasm_exec_env_t>(exec_env);
+		return *static_cast<const Self*>(wasm_runtime_get_user_data(tmpPtr));
+	}
+
+	static const Self& FromConstUserData(pointer exec_env)
+	{
+		return *static_cast<Self*>(wasm_runtime_get_user_data(exec_env));
+	}
+
 public:
 
 	WasmExecEnv(
@@ -68,8 +89,11 @@ public:
 		std::shared_ptr<WasmModuleInstance> moduleInst
 	) noexcept :
 		Base(ptr), // base constructor is noexcept
-		m_moduleInst(moduleInst) // shared_ptr copy is noexcept
-	{}
+		m_moduleInst(moduleInst), // shared_ptr copy is noexcept
+		m_userData()
+	{
+		wasm_runtime_set_user_data(get(), this);
+	}
 
 	/**
 	 * @brief Copy is prohibited.
@@ -84,8 +108,11 @@ public:
 	 */
 	WasmExecEnv(WasmExecEnv&& other) noexcept :
 		Base(std::move(other)), // base move is noexcept
-		m_moduleInst(std::move(other.m_moduleInst)) // shared_ptr move is noexcept
-	{}
+		m_moduleInst(std::move(other.m_moduleInst)), // shared_ptr move is noexcept
+		m_userData(std::move(other.m_userData))
+	{
+		wasm_runtime_set_user_data(get(), this);
+	}
 
 	virtual ~WasmExecEnv()
 	{
@@ -107,7 +134,14 @@ public:
 	WasmExecEnv& operator=(WasmExecEnv&& other)
 	{
 		Base::operator=(std::move(other));
-		m_moduleInst = std::move(other.m_moduleInst); // shared_ptr move is noexcept
+		if (this != &other)
+		{
+			// free the current object and then move the other object
+			m_moduleInst = std::move(other.m_moduleInst); // shared_ptr move is noexcept
+			m_userData = std::move(other.m_userData);
+
+			wasm_runtime_set_user_data(get(), this);
+		}
 		return *this;
 	}
 
@@ -152,9 +186,25 @@ public:
 		return retVals;
 	}
 
+	void SetUserData(std::unique_ptr<ExecEnvUserData> userData)
+	{
+		m_userData = std::move(userData);
+	}
+
+	ExecEnvUserData& GetUserData()
+	{
+		return *m_userData;
+	}
+
+	const ExecEnvUserData& GetUserData() const
+	{
+		return *m_userData;
+	}
+
 private:
 
 	std::shared_ptr<WasmModuleInstance> m_moduleInst;
+	std::unique_ptr<ExecEnvUserData> m_userData;
 
 }; // class WasmExecEnv
 
