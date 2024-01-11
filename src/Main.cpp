@@ -16,7 +16,10 @@ void ocall_print(const char *str)
 }
 
 extern sgx_status_t ecall_iwasm_main(
-	sgx_enclave_id_t eid, uint8_t* wasm_file_buf, size_t wasm_file_size);
+	sgx_enclave_id_t eid,
+	uint8_t *wasm_file, size_t wasm_file_size,
+	uint8_t *wasm_inst_file, size_t wasm_inst_file_size
+);
 
 } // extern "C"
 
@@ -107,26 +110,29 @@ static void enclave_init(sgx_enclave_id_t *p_eid)
 
 int main(int argc, char**argv)
 {
-	if (argc < 2)
+	if (argc < 3)
 	{
-		std::cerr << "ERROR: "
-			<< "Please provide a path to WASM file." << std::endl;
-		//return -1;
+		std::cerr << "Usage: "
+			<< argv[0] << " <wasm file> <inst. wasm file>" << std::endl;
+		return -1;
 	}
 
-	std::string wasmFilename = argv[1];
+	const std::string wasmFilenamePath = argv[1];
+	const std::string instWasmFilenamePath = argv[2];
 
-	std::cout << "INFO: "
-		<< "Specified WASM file @ " << wasmFilename << std::endl;
-
-	auto wasmBuf = ReadFile2Buffer(wasmFilename);
+	auto wasmBytecode = ReadFile2Buffer(wasmFilenamePath);
+	auto instWasmBytecode = ReadFile2Buffer(instWasmFilenamePath);
 
 	// init enclave
 	sgx_enclave_id_t eid = 0;
 	enclave_init(&eid);
 
 	// iwasm main
-	auto ret = ecall_iwasm_main(eid, wasmBuf.data(), wasmBuf.size());
+	auto ret = ecall_iwasm_main(
+		eid,
+		wasmBytecode.data(), wasmBytecode.size(),
+		instWasmBytecode.data(), instWasmBytecode.size()
+	);
 	if(ret != SGX_SUCCESS)
 	{
 		std::cerr << "ERROR: "
