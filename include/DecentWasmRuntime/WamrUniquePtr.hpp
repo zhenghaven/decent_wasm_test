@@ -87,9 +87,9 @@ public:
 	 */
 	void reset(pointer ptr = nullptr)
 	{
-		if (ptr != nullptr)
+		if (m_ptr != nullptr)
 		{
-			get_deleter()(ptr);
+			get_deleter()(m_ptr);
 		}
 		m_ptr = ptr;
 	}
