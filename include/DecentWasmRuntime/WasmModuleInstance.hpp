@@ -20,6 +20,52 @@ namespace DecentWasmRuntime
 {
 
 
+template<typename _GlobalType>
+struct WasmModuleInstanceGlobalGetter;
+
+template<>
+struct WasmModuleInstanceGlobalGetter<uint64_t>
+{
+	static uint64_t Get(
+		wasm_module_inst_t const module_inst,
+		wasm_global_inst_t const global_inst
+	)
+	{
+		uint64_t retVal = 0;
+		if (!wasm_runtime_get_global_i64(
+				module_inst,
+				global_inst,
+				reinterpret_cast<int64_t*>(&retVal))
+		)
+		{
+			throw Exception("Failed to get global value.");
+		}
+		return retVal;
+	}
+}; // struct WasmModuleInstanceGlobalGetter<uint64_t>
+
+template<>
+struct WasmModuleInstanceGlobalGetter<uint32_t>
+{
+	static uint32_t Get(
+		wasm_module_inst_t const module_inst,
+		wasm_global_inst_t const global_inst
+	)
+	{
+		uint32_t retVal = 0;
+		if (!wasm_runtime_get_global_i32(
+				module_inst,
+				global_inst,
+				reinterpret_cast<int32_t*>(&retVal))
+		)
+		{
+			throw Exception("Failed to get global value.");
+		}
+		return retVal;
+	}
+}; // struct WasmModuleInstanceGlobalGetter<uint32_t>
+
+
 struct WasmModuleDeinstantiate
 {
 	void operator()(wasm_module_inst_t ptr) noexcept
@@ -41,6 +87,8 @@ public: // static members
 		typename std::remove_pointer<wasm_module_inst_t>::type,
 		WasmModuleDeinstantiate
 	>;
+	using pointer       = typename Base::pointer;
+	using const_pointer = typename Base::const_pointer;
 
 	friend class WasmExecEnv;
 
@@ -122,64 +170,17 @@ public:
 		return *this;
 	}
 
-
-	// template<typename _T>
-	// typename Internal::WasmModMemIf<_T>::Single
-	// Malloc()
-	// {
-	// 	using _MemType     = typename Internal::WasmModMemIf<_T>::Single;
-	// 	using _MemBaseType = typename _MemType::Base;
-
-	// 	return _MemBaseType::template Malloc<_MemType>(get(), sizeof(_T));
-	// }
-
-	// template<typename _T, typename... _Args>
-	// typename Internal::WasmModMemIf<_T>::Single
-	// New(_Args&&... args)
-	// {
-	// 	using _MemType     = typename Internal::WasmModMemIf<_T>::Single;
-
-	// 	_MemType mem = Malloc<_T>();
-
-	// 	new (mem.get()) _T(std::forward<_Args>(args)...);
-	// 	mem.m_needDestr = true;
-
-	// 	return mem;
-	// }
-
-	// template<typename _T>
-	// typename Internal::WasmModMemIf<_T>::ArrayUnknownBound
-	// Malloc(size_t n)
-	// {
-	// 	using _MemType     =
-	// 		typename Internal::WasmModMemIf<_T>::ArrayUnknownBound;
-	// 	using _MemBaseType = typename _MemType::Base;
-	// 	using _ElemType    = typename _MemType::element_type;
-
-	// 	size_t size = n * sizeof(_ElemType);
-	// 	return _MemBaseType::template Malloc<_MemType>(get(), size);
-	// }
-
-	// template<typename _T>
-	// typename Internal::WasmModMemIf<_T>::ArrayUnknownBound
-	// New(size_t n)
-	// {
-	// 	using _MemType     =
-	// 		typename Internal::WasmModMemIf<_T>::ArrayUnknownBound;
-	// 	using _ElemType    = typename _MemType::element_type;
-	// 	using _Up          = typename std::remove_extent<_T>::type;
-
-	// 	static_assert(
-	// 		std::is_same<_ElemType, _Up>::value,
-	// 		"_Up must be the same as element_type");
-
-	// 	_MemType mem = Malloc<_T>(n);
-
-	// 	new (mem.get()) _Up[n]();
-	// 	mem.m_numConstructedItems = n;
-
-	// 	return mem;
-	// }
+	template<typename _RetType>
+	_RetType GetGlobal(const std::string& name) const
+	{
+		pointer ptr = const_cast<pointer>(get());
+		auto global = wasm_runtime_lookup_global(ptr, name.c_str());
+		if (global == nullptr)
+		{
+			throw Exception("Failed to find global with name " + name);
+		}
+		return WasmModuleInstanceGlobalGetter<_RetType>::Get(ptr, global);
+	}
 
 private:
 
