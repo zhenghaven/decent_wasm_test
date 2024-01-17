@@ -201,6 +201,16 @@ public:
 		return *m_userData;
 	}
 
+	WasmModuleInstance& GetModuleInstance()
+	{
+		return *m_moduleInst;
+	}
+
+	const WasmModuleInstance& GetModuleInstance() const
+	{
+		return *m_moduleInst;
+	}
+
 private:
 
 	std::shared_ptr<WasmModuleInstance> m_moduleInst;

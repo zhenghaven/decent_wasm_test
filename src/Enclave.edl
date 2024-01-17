@@ -8,7 +8,7 @@ enclave {
 
 	trusted {
 		/* define ECALLs here. */
-		public void ecall_iwasm_main(
+		public void ecall_decent_wasm_main(
 			[in, size=wasm_file_size]     uint8_t *wasm_file,      size_t wasm_file_size,
 			[in, size=wasm_inst_file_size]uint8_t *wasm_inst_file, size_t wasm_inst_file_size
 		);
@@ -17,5 +17,6 @@ enclave {
 	untrusted {
 		/* define OCALLs here. */
 		void ocall_print([in, string]const char* str);
+		uint64_t ocall_decent_untrusted_timestamp_us();
 	};
 };

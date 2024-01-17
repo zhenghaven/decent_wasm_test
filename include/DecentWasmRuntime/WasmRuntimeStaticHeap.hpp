@@ -18,7 +18,6 @@
 
 extern "C" {
 
-typedef void (*os_print_function_t)(const char *message);
 extern void wasm_os_set_print_function(os_print_function_t pf);
 
 extern void decent_wasm_reg_natives();
@@ -43,8 +42,7 @@ public:
 		os_print_function_t pf,
 		uint32_t heapSize
 	) :
-		Base(),
-		m_pf(pf),
+		Base(pf),
 		m_heapSize(heapSize),
 		m_heap(Internal::make_unique<uint8_t[]>(heapSize))
 	{
@@ -81,7 +79,6 @@ public:
 
 private:
 
-	os_print_function_t m_pf;
 	uint32_t m_heapSize;
 	std::unique_ptr<uint8_t[]> m_heap;
 

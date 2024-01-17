@@ -8,7 +8,7 @@
 
 #include <wasm_export.h>
 
-extern void enclave_print(const char *message);
+extern int wasm_os_printf(const char *message, ...);
 extern int decent_wasm_sum(wasm_exec_env_t exec_env , int a, int b);
 extern void decent_wasm_print_string(wasm_exec_env_t exec_env, const char * msg);
 extern void decent_wasm_start_benchmark(wasm_exec_env_t exec_env);
@@ -102,6 +102,6 @@ void decent_wasm_reg_natives()
 	if (!wasm_runtime_register_natives("env",
 		gs_DecentWasmNatives, symNum))
 	{
-		enclave_print("ERROR: Failed to register Decent WASM native symbols!");
+		wasm_os_printf("ERROR: Failed to register Decent WASM native symbols!");
 	}
 }

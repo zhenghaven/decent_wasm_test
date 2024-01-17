@@ -4,7 +4,7 @@
 #include <wasm_export.h>
 
 
-extern void enclave_print(const char *message);
+extern int wasm_os_printf(const char *message, ...);
 
 static void
 wasi_proc_exit(wasm_exec_env_t exec_env, uint32_t rval)
@@ -33,6 +33,6 @@ void decent_wasi_reg_natives()
 	if (!wasm_runtime_register_natives("wasi_snapshot_preview1",
 		gs_DecentWasiNatives, symNum))
 	{
-		enclave_print("ERROR: Failed to register Decent WASI native symbols!");
+		wasm_os_printf("ERROR: Failed to register Decent WASI native symbols!");
 	}
 }

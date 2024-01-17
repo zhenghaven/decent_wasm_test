@@ -6,6 +6,9 @@
 #pragma once
 
 
+typedef void (*os_print_function_t)(const char *message);
+
+
 namespace DecentWasmRuntime
 {
 
@@ -14,7 +17,8 @@ class WasmRuntime
 {
 public:
 
-	WasmRuntime()
+	WasmRuntime(os_print_function_t printFunc) :
+		m_printFunc(printFunc)
 	{}
 
 	WasmRuntime(const WasmRuntime&) = delete;
@@ -28,6 +32,14 @@ public:
 
 	WasmRuntime& operator=(WasmRuntime&&) = delete;
 
+	os_print_function_t GetPrintFunc() const noexcept
+	{
+		return m_printFunc;
+	}
+
+private:
+
+	os_print_function_t m_printFunc;
 }; // class WasmRuntime
 
 

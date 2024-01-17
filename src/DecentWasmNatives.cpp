@@ -8,9 +8,7 @@
 
 #include <DecentWasmRuntime/WasmExecEnv.hpp>
 
-
-
-extern "C" void enclave_print(const char *message);
+#include "SystemIO.hpp"
 
 
 extern "C" int decent_wasm_sum(wasm_exec_env_t exec_env , int a, int b)
@@ -23,21 +21,53 @@ extern "C" int decent_wasm_sum(wasm_exec_env_t exec_env , int a, int b)
 extern "C" void decent_wasm_print_string(wasm_exec_env_t exec_env, const char * msg)
 {
 	(void)exec_env;
-	enclave_print(msg);
+	PrintStr(msg);
 }
 
 
 extern "C" void decent_wasm_start_benchmark(wasm_exec_env_t exec_env)
 {
-	(void)exec_env;
-	enclave_print("Benchmark started.\n");
+	using namespace DecentWasmRuntime;
+
+	PrintStr("Benchmark started.\n");
+
+	try
+	{
+		uint64_t startUs = GetTimestampUs();
+
+		WasmExecEnv::FromUserData(exec_env).GetUserData().SetStartTime(startUs);
+	}
+	catch (const std::exception& e)
+	{
+		wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+		wasm_runtime_set_exception(module_inst, e.what());
+	}
 }
 
 
 extern "C" void decent_wasm_stop_benchmark(wasm_exec_env_t exec_env)
 {
-	(void)exec_env;
-	enclave_print("Benchmark stopped.\n");
+	using namespace DecentWasmRuntime;
+
+	try
+	{
+		uint64_t endUs = GetTimestampUs();
+
+		const auto& execEnv = WasmExecEnv::FromConstUserData(exec_env);
+		uint64_t startUs = execEnv.GetUserData().GetStartTime();
+
+		uint64_t durationUs = endUs - startUs;
+		std::string msg =
+			"Benchmark stopped. (Started @ " + std::to_string(startUs) + " us,"
+			" ended @ " + std::to_string(endUs) + " us, "
+			"spent " + std::to_string(durationUs) + " us)\n";
+		PrintStr(msg);
+	}
+	catch (const std::exception& e)
+	{
+		wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+		wasm_runtime_set_exception(module_inst, e.what());
+	}
 }
 
 
@@ -95,23 +125,44 @@ extern "C" uint32_t decent_wasm_get_event_data(
 
 extern "C" void decent_wasm_exit(wasm_exec_env_t exec_env, int exit_code)
 {
-	(void)exec_env;
 	(void)exit_code;
 	wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
 	/* Here throwing exception is just to let wasm app exit,
 		the upper layer should clear the exception and return
 		as normal */
-    wasm_runtime_set_exception(module_inst, "decent wasm exit");
+	wasm_runtime_set_exception(module_inst, "decent wasm exit");
 }
 
 
 extern "C" void decent_wasm_counter_exceed(wasm_exec_env_t exec_env)
 {
-	(void)exec_env;
-    wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
-    /* Here throwing exception is just to let wasm app exit,
-       the upper layer should clear the exception and return
-       as normal */
-    wasm_runtime_set_exception(module_inst, "decent counter exceed");
+	using namespace DecentWasmRuntime;
+
+	static const std::string sk_globalThresholdName = "decent_wasm_threshold";
+	static const std::string sk_globalCounterName = "decent_wasm_counter";
+
+	try
+	{
+		uint64_t threshold = WasmExecEnv::FromConstUserData(exec_env).GetModuleInstance().
+			GetGlobal<uint64_t>(sk_globalThresholdName);
+		uint64_t counter = WasmExecEnv::FromConstUserData(exec_env).GetModuleInstance().
+			GetGlobal<uint64_t>(sk_globalCounterName);
+		wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+
+		std::string msg = "decent counter exceed. ( "
+			"Threshold: " + std::to_string(threshold) + ", "
+			"Counter: " + std::to_string(counter) + ")" ;
+		PrintStr(msg);
+
+		/* Here throwing exception is just to let wasm app exit,
+		the upper layer should clear the exception and return
+		as normal */
+		wasm_runtime_set_exception(module_inst, "decent counter exceed");
+	}
+	catch (const std::exception& e)
+	{
+		wasm_module_inst_t module_inst = wasm_runtime_get_module_inst(exec_env);
+		wasm_runtime_set_exception(module_inst, e.what());
+	}
 }
 

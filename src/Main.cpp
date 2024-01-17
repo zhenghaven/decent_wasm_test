@@ -1,5 +1,6 @@
 #include <cstdio>
 
+#include <chrono>
 #include <iostream>
 #include <vector>
 #include <stdexcept>
@@ -15,7 +16,16 @@ void ocall_print(const char *str)
 	printf("%s", str);
 }
 
-extern sgx_status_t ecall_iwasm_main(
+extern "C" uint64_t ocall_decent_untrusted_timestamp_us()
+{
+	auto now = std::chrono::system_clock::now();
+	auto nowUs = std::chrono::duration_cast<std::chrono::microseconds>(
+		now.time_since_epoch()
+	);
+	return static_cast<uint64_t>(nowUs.count());
+}
+
+extern sgx_status_t ecall_decent_wasm_main(
 	sgx_enclave_id_t eid,
 	uint8_t *wasm_file, size_t wasm_file_size,
 	uint8_t *wasm_inst_file, size_t wasm_inst_file_size
@@ -128,7 +138,7 @@ int main(int argc, char**argv)
 	enclave_init(&eid);
 
 	// iwasm main
-	auto ret = ecall_iwasm_main(
+	auto ret = ecall_decent_wasm_main(
 		eid,
 		wasmBytecode.data(), wasmBytecode.size(),
 		instWasmBytecode.data(), instWasmBytecode.size()
@@ -136,7 +146,7 @@ int main(int argc, char**argv)
 	if(ret != SGX_SUCCESS)
 	{
 		std::cerr << "ERROR: "
-			<< "Failed to run ecall_iwasm_main." << std::endl;
+			<< "Failed to run ecall_decent_wasm_main." << std::endl;
 	}
 
 	// destroy enclave
