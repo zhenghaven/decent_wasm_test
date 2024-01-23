@@ -9,13 +9,13 @@
 extern "C" {
 
 void ecall_decent_wasm_main(
-	uint8_t *wasm_file, size_t wasm_file_size,
-	uint8_t *wasm_inst_file, size_t wasm_inst_file_size
+	const uint8_t *wasm_file, size_t wasm_file_size,
+	const uint8_t *wasm_nopt_file, size_t wasm_nopt_file_size
 )
 {
 	DecentWasmMain(
 		wasm_file, wasm_file_size,
-		wasm_inst_file, wasm_inst_file_size
+		wasm_nopt_file, wasm_nopt_file_size
 	);
 }
 

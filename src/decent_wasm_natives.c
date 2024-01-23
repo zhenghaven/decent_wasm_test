@@ -8,7 +8,7 @@
 
 #include <wasm_export.h>
 
-extern int wasm_os_printf(const char *message, ...);
+typedef void (*os_print_function_t)(const char *message);
 extern int decent_wasm_sum(wasm_exec_env_t exec_env , int a, int b);
 extern void decent_wasm_print_string(wasm_exec_env_t exec_env, const char * msg);
 extern void decent_wasm_start_benchmark(wasm_exec_env_t exec_env);
@@ -96,12 +96,12 @@ static NativeSymbol gs_DecentWasmNatives[] =
 // Ref: https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/export_native_api.md
 
 
-void decent_wasm_reg_natives()
+void decent_wasm_reg_natives(os_print_function_t os_print)
 {
 	const int symNum = sizeof(gs_DecentWasmNatives) / sizeof(NativeSymbol);
 	if (!wasm_runtime_register_natives("env",
 		gs_DecentWasmNatives, symNum))
 	{
-		wasm_os_printf("ERROR: Failed to register Decent WASM native symbols!");
+		os_print("ERROR: Failed to register Decent WASM native symbols!");
 	}
 }

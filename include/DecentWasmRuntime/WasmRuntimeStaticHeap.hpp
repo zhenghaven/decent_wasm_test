@@ -58,7 +58,9 @@ public:
 		{
 			throw Exception("Init runtime environment failed");
 		}
+#ifdef DECENT_ENCLAVE_PLATFORM_SGX_TRUSTED
 		wasm_os_set_print_function(pf);
+#endif // DECENT_ENCLAVE_PLATFORM_SGX_TRUSTED
 		decent_wasm_reg_natives();
 	}
 

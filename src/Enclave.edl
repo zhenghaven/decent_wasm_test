@@ -9,8 +9,8 @@ enclave {
 	trusted {
 		/* define ECALLs here. */
 		public void ecall_decent_wasm_main(
-			[in, size=wasm_file_size]     uint8_t *wasm_file,      size_t wasm_file_size,
-			[in, size=wasm_inst_file_size]uint8_t *wasm_inst_file, size_t wasm_inst_file_size
+			[in, size=wasm_file_size]      const uint8_t *wasm_file,      size_t wasm_file_size,
+			[in, size=wasm_nopt_file_size] const uint8_t *wasm_nopt_file, size_t wasm_nopt_file_size
 		);
 	};
 

@@ -13,6 +13,8 @@ decent_enclave_print_config_sgx()
 decent_enclave_add_target_sgx(decent_wasm_test
 	UNTRUSTED_SOURCE
 		${CMAKE_CURRENT_LIST_DIR}/Main.cpp
+		${CMAKE_CURRENT_LIST_DIR}/decent_wasm_natives.c
+		${CMAKE_CURRENT_LIST_DIR}/DecentWasmNatives.cpp
 	UNTRUSTED_DEF
 		DECENTENCLAVE_DEV_LEVEL_0
 	UNTRUSTED_INCL_DIR
@@ -22,10 +24,11 @@ decent_enclave_add_target_sgx(decent_wasm_test
 		$<$<CONFIG:DebugSimulation>:${DEBUG_OPTIONS}>
 		$<$<CONFIG:Release>:${RELEASE_OPTIONS}>
 	UNTRUSTED_LINK_OPT ""
-	UNTRUSTED_LINK_LIB ""
+	UNTRUSTED_LINK_LIB
+		DecentWasmRuntime
+		iwasm_static
 	TRUSTED_SOURCE
 		${CMAKE_CURRENT_LIST_DIR}/Enclave.cpp
-		${CMAKE_CURRENT_LIST_DIR}/decent_wasi_natives.c
 		${CMAKE_CURRENT_LIST_DIR}/decent_wasm_natives.c
 		${CMAKE_CURRENT_LIST_DIR}/DecentWasmNatives.cpp
 	TRUSTED_DEF

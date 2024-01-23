@@ -81,14 +81,40 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(git_simplecmakescripts)
 simplecmakescripts_enable()
 
-# Setup WASM
+# Setup WASM options
+set(
+	WAMR_BUILD_LIBC_WASI    0
+	CACHE INTERNAL
+	"Disable WAMR Libc WASI support"
+	FORCE
+)
+set(
+	WAMR_BUILD_MULTI_MODULE 1
+	CACHE INTERNAL
+	"Enable WAMR Multiple modules support"
+	FORCE
+)
+
+# Setup WASM (SGX)
 FetchContent_Declare(
-	git_wasm_micro_runtime
+	git_wasm_micro_runtime_sgx
 	GIT_REPOSITORY https://github.com/zhenghaven/wasm-micro-runtime.git
 	GIT_TAG        origin/decent-sgx
 	SOURCE_SUBDIR  product-mini/platforms/decent-sgx
 )
-FetchContent_MakeAvailable(git_wasm_micro_runtime)
+FetchContent_MakeAvailable(git_wasm_micro_runtime_sgx)
+
+# Setup WASM (Regular)
+FetchContent_Declare(
+	git_wasm_micro_runtime_reg
+	GIT_REPOSITORY https://github.com/zhenghaven/wasm-micro-runtime.git
+	GIT_TAG        origin/decent-sgx
+)
+FetchContent_MakeAvailable(git_wasm_micro_runtime_reg)
+target_include_directories(
+	iwasm_static
+	PUBLIC ${WAMR_ROOT_DIR}/core/iwasm/include
+)
 
 # Setup WABT
 FetchContent_Declare(

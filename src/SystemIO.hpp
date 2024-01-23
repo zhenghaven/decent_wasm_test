@@ -55,6 +55,7 @@ inline std::string InsertMsgHeader(
 
 
 #ifdef DECENT_ENCLAVE_PLATFORM_SGX_TRUSTED
+
 inline void PrintStr(const std::string& str)
 {
 	ocall_print(InsertMsgHeader("[Enclave] ", str).c_str());
@@ -70,6 +71,19 @@ inline uint64_t GetTimestampUs()
 	}
 	return ret;
 }
+
+#else // !DECENT_ENCLAVE_PLATFORM_SGX_TRUSTED
+
+inline void PrintStr(const std::string& str)
+{
+	ocall_print(InsertMsgHeader("[Untrusted] ", str).c_str());
+}
+
+inline uint64_t GetTimestampUs()
+{
+	return ocall_decent_untrusted_timestamp_us();
+}
+
 #endif // DECENT_ENCLAVE_PLATFORM_SGX_TRUSTED
 
 

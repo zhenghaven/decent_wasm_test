@@ -9,6 +9,8 @@
 #include <sgx_urts.h>
 #include <sgx_edger8r.h>
 
+#include "DecentMain.hpp"
+
 extern "C" {
 
 void ocall_print(const char *str)
@@ -27,8 +29,8 @@ extern "C" uint64_t ocall_decent_untrusted_timestamp_us()
 
 extern sgx_status_t ecall_decent_wasm_main(
 	sgx_enclave_id_t eid,
-	uint8_t *wasm_file, size_t wasm_file_size,
-	uint8_t *wasm_inst_file, size_t wasm_inst_file_size
+	const uint8_t *wasm_file, size_t wasm_file_size,
+	const uint8_t *wasm_nopt_file, size_t wasm_nopt_file_size
 );
 
 } // extern "C"
@@ -118,6 +120,42 @@ static void enclave_init(sgx_enclave_id_t *p_eid)
 	}
 }
 
+static void BenchmarkOnUntrusted(
+	const std::vector<uint8_t>& wasmBytecode,
+	const std::vector<uint8_t>& noptWasmBytecode
+)
+{
+	DecentWasmMain(
+		wasmBytecode.data(), wasmBytecode.size(),
+		noptWasmBytecode.data(), noptWasmBytecode.size()
+	);
+}
+
+static void BenchmarkOnEnclave(
+	const std::vector<uint8_t>& wasmBytecode,
+	const std::vector<uint8_t>& noptWasmBytecode
+)
+{
+	// init enclave
+	sgx_enclave_id_t eid = 0;
+	enclave_init(&eid);
+
+	// iwasm main
+	auto ret = ecall_decent_wasm_main(
+		eid,
+		wasmBytecode.data(), wasmBytecode.size(),
+		noptWasmBytecode.data(), noptWasmBytecode.size()
+	);
+	if(ret != SGX_SUCCESS)
+	{
+		std::cerr << "ERROR: "
+			<< "Failed to run ecall_decent_wasm_main." << std::endl;
+	}
+
+	// destroy enclave
+	sgx_destroy_enclave(eid);
+}
+
 int main(int argc, char**argv)
 {
 	if (argc < 3)
@@ -133,24 +171,8 @@ int main(int argc, char**argv)
 	auto wasmBytecode = ReadFile2Buffer(wasmFilenamePath);
 	auto instWasmBytecode = ReadFile2Buffer(instWasmFilenamePath);
 
-	// init enclave
-	sgx_enclave_id_t eid = 0;
-	enclave_init(&eid);
-
-	// iwasm main
-	auto ret = ecall_decent_wasm_main(
-		eid,
-		wasmBytecode.data(), wasmBytecode.size(),
-		instWasmBytecode.data(), instWasmBytecode.size()
-	);
-	if(ret != SGX_SUCCESS)
-	{
-		std::cerr << "ERROR: "
-			<< "Failed to run ecall_decent_wasm_main." << std::endl;
-	}
-
-	// destroy enclave
-	sgx_destroy_enclave(eid);
+	BenchmarkOnUntrusted(wasmBytecode, instWasmBytecode);
+	BenchmarkOnEnclave(wasmBytecode, instWasmBytecode);
 
 	return 0;
 }

@@ -19,13 +19,22 @@
 
 
 inline void DecentWasmMain(
-	uint8_t *wasm_file, size_t wasm_file_size,
-	uint8_t *wasm_inst_file, size_t wasm_inst_file_size
+	const uint8_t *wasm_file, size_t wasm_file_size,
+	const uint8_t *wasm_nopt_file, size_t wasm_nopt_file_size
 )
 {
 	using namespace DecentWasmRuntime;
 	try
 	{
+		std::vector<uint8_t> wasmBytecode(
+			wasm_file,
+			wasm_file + wasm_file_size
+		);
+		std::vector<uint8_t> instWasmBytecode(
+			wasm_nopt_file,
+			wasm_nopt_file + wasm_nopt_file_size
+		);
+
 		auto wasmRt = SharedWasmRuntime(
 			Internal::make_unique<WasmRuntimeStaticHeap>(
 				PrintCStr,
@@ -41,11 +50,6 @@ inline void DecentWasmMain(
 		};
 		uint64_t threshold = std::numeric_limits<uint64_t>::max() / 2;
 
-		std::vector<uint8_t> wasmBytecode(
-			wasm_file,
-			wasm_file + wasm_file_size
-		);
-
 		MainRunner(
 			wasmRt,
 			wasmBytecode,
@@ -56,10 +60,6 @@ inline void DecentWasmMain(
 			 1 * 1024 * 1024  // exec stack: 1 MB
 		).RunPlain();
 
-		std::vector<uint8_t> instWasmBytecode(
-			wasm_inst_file,
-			wasm_inst_file + wasm_inst_file_size
-		);
 		MainRunner(
 			wasmRt,
 			instWasmBytecode,
