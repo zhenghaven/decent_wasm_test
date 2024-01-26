@@ -18,7 +18,7 @@
 #include "SystemIO.hpp"
 
 
-inline void DecentWasmMain(
+inline bool DecentWasmMain(
 	const uint8_t *wasm_file, size_t wasm_file_size,
 	const uint8_t *wasm_nopt_file, size_t wasm_nopt_file_size
 )
@@ -69,11 +69,14 @@ inline void DecentWasmMain(
 			10 * 1024 * 1024, // mod heap:  10 MB
 			 1 * 1024 * 1024  // exec stack: 1 MB
 		).RunInstrumented(threshold);
+
+		return true;
 	}
 	catch(const std::exception& e)
 	{
 		PrintStr(e.what());
 		PrintStr("\n");
+		return false;
 	}
 }
 

@@ -23,5 +23,15 @@ public:
 }; // class Exception
 
 
+class WasmRuntimeException : public Exception
+{
+public:
+	WasmRuntimeException(const char* msg) : Exception(msg) {}
+	WasmRuntimeException(const std::string& msg) : Exception(msg) {}
+
+	virtual ~WasmRuntimeException() noexcept {}
+}; // class WasmRuntimeException
+
+
 } // namespace DecentWasmRuntime
 

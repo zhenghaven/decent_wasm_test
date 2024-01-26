@@ -182,6 +182,18 @@ public:
 		return WasmModuleInstanceGlobalGetter<_RetType>::Get(ptr, global);
 	}
 
+	bool HasException() const noexcept
+	{
+		pointer ptr = const_cast<pointer>(get());
+		return wasm_runtime_get_exception(ptr) != nullptr;
+	}
+
+	std::string GetExceptionMsg() const
+	{
+		pointer ptr = const_cast<pointer>(get());
+		return wasm_runtime_get_exception(ptr);
+	}
+
 private:
 
 	std::shared_ptr<WasmModule> m_module;

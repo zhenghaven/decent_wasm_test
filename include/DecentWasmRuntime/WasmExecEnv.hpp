@@ -178,7 +178,7 @@ public:
 
 		if (!execRes)
 		{
-			throw Exception(wasm_runtime_get_exception(moduleInst));
+			throw WasmRuntimeException(wasm_runtime_get_exception(moduleInst));
 		}
 
 		WasmValListToTuple<_RetTuple, sk_numRes>::Read(retVals, wasmRes);

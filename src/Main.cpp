@@ -120,12 +120,12 @@ static void enclave_init(sgx_enclave_id_t *p_eid)
 	}
 }
 
-static void BenchmarkOnUntrusted(
+static bool BenchmarkOnUntrusted(
 	const std::vector<uint8_t>& wasmBytecode,
 	const std::vector<uint8_t>& noptWasmBytecode
 )
 {
-	DecentWasmMain(
+	return DecentWasmMain(
 		wasmBytecode.data(), wasmBytecode.size(),
 		noptWasmBytecode.data(), noptWasmBytecode.size()
 	);
@@ -171,7 +171,10 @@ int main(int argc, char**argv)
 	auto wasmBytecode = ReadFile2Buffer(wasmFilenamePath);
 	auto instWasmBytecode = ReadFile2Buffer(instWasmFilenamePath);
 
-	BenchmarkOnUntrusted(wasmBytecode, instWasmBytecode);
+	if (!BenchmarkOnUntrusted(wasmBytecode, instWasmBytecode))
+	{
+		return -1;
+	}
 	BenchmarkOnEnclave(wasmBytecode, instWasmBytecode);
 
 	return 0;
