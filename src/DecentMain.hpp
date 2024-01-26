@@ -38,7 +38,7 @@ inline bool DecentWasmMain(
 		auto wasmRt = SharedWasmRuntime(
 			Internal::make_unique<WasmRuntimeStaticHeap>(
 				PrintCStr,
-				16 * 1024 * 1024 // 16 MB
+				24 * 1024 * 1024 // 24 MB
 			)
 		);
 
@@ -56,7 +56,7 @@ inline bool DecentWasmMain(
 			eventId,
 			msgContent,
 			 1 * 1024 * 1024, // mod stack:  1 MB
-			10 * 1024 * 1024, // mod heap:  10 MB
+			16 * 1024 * 1024, // mod heap:  16 MB
 			 1 * 1024 * 1024  // exec stack: 1 MB
 		).RunPlain();
 
@@ -66,7 +66,7 @@ inline bool DecentWasmMain(
 			eventId,
 			msgContent,
 			 1 * 1024 * 1024, // mod stack:  1 MB
-			10 * 1024 * 1024, // mod heap:  10 MB
+			16 * 1024 * 1024, // mod heap:  16 MB
 			 1 * 1024 * 1024  // exec stack: 1 MB
 		).RunInstrumented(threshold);
 
