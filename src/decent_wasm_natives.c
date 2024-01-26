@@ -9,6 +9,12 @@
 #include <wasm_export.h>
 
 typedef void (*os_print_function_t)(const char *message);
+extern void emscripten_memcpy_js(
+	wasm_exec_env_t exec_env,
+	void* dest,
+	const void* src,
+	size_t n
+);
 extern int decent_wasm_sum(wasm_exec_env_t exec_env , int a, int b);
 extern void decent_wasm_print_string(wasm_exec_env_t exec_env, const char * msg);
 extern void decent_wasm_start_benchmark(wasm_exec_env_t exec_env);
@@ -23,6 +29,12 @@ extern uint32_t decent_wasm_get_event_data(wasm_exec_env_t exec_env, uint32_t wa
 
 static NativeSymbol gs_DecentWasmNatives[] =
 {
+	{
+		"emscripten_memcpy_js", // WASM function name
+		emscripten_memcpy_js,   // the native function pointer
+		"(**~)",               // the function prototype signature
+		NULL,
+	},
 	{
 		"decent_wasm_sum", // WASM function name
 		decent_wasm_sum,   // the native function pointer

@@ -4,6 +4,8 @@
 // https://opensource.org/licenses/MIT.
 
 
+#include <cstdint>
+
 #include <wasm_export.h>
 
 #include <DecentWasmRuntime/WasmExecEnv.hpp>
@@ -11,7 +13,18 @@
 #include "SystemIO.hpp"
 
 
-extern "C" int decent_wasm_sum(wasm_exec_env_t exec_env , int a, int b)
+extern "C" void emscripten_memcpy_js(
+	wasm_exec_env_t exec_env,
+	void* dest,
+	const void* src,
+	size_t n
+)
+{
+	(void)exec_env;
+	std::memcpy(dest, src, n);
+}
+
+extern "C" int decent_wasm_sum(wasm_exec_env_t exec_env, int a, int b)
 {
 	(void)exec_env;
 	return a + b;

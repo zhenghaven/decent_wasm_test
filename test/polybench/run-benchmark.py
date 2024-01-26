@@ -19,6 +19,7 @@ TEST_CASES = [
 	# datamining - 2
 	'correlation',
 	'covariance',
+
 	# linear-algebra/blas - 7
 	'gemm',
 	'gemver',
@@ -27,6 +28,7 @@ TEST_CASES = [
 	'syr2k',
 	'syrk',
 	'trmm',
+
 	# linear-algebra/kernels - 6
 	'2mm',
 	'3mm',
@@ -34,17 +36,20 @@ TEST_CASES = [
 	'bicg',
 	'doitgen',
 	'mvt',
+
 	# linear-algebra - solvers - 6
 	'cholesky',
-	## 'durbin',
+	'durbin',
 	'gramschmidt',
 	'lu',
 	'ludcmp',
 	'trisolv',
+
 	# medley - 3
-	## 'deriche',
+	'deriche',
 	'floyd-warshall',
 	'nussinov',
+
 	# stencils - 6
 	'adi',
 	'fdtd-2d',
