@@ -15,6 +15,7 @@
 
 #include <wasm_export.h>
 
+#include "Internal/make_unique.hpp"
 #include "Exception.hpp"
 #include "WasmRuntime.hpp"
 
@@ -54,9 +55,12 @@ public: // static members
 	{
 		char errorBuf[512];
 
+		std::unique_ptr<std::vector<uint8_t> > wasmCopy =
+			Internal::make_unique<std::vector<uint8_t> >(wasm);
+
 		wasm_module_t ptr = wasm_runtime_load(
-			wasm.data(),
-			wasm.size(),
+			wasmCopy->data(),
+			wasmCopy->size(),
 			errorBuf,
 			sizeof(errorBuf)
 		);
@@ -66,13 +70,18 @@ public: // static members
 			throw Exception(errorBuf);
 		}
 
-		return WasmModule(ptr, runtime);
+		return WasmModule(ptr, std::move(wasmCopy), runtime);
 	}
 
 public:
 
-	WasmModule(wasm_module_t ptr, std::shared_ptr<WasmRuntime> runtime) noexcept :
+	WasmModule(
+		wasm_module_t ptr,
+		std::unique_ptr<std::vector<uint8_t> > wasm,
+		std::shared_ptr<WasmRuntime> runtime
+	) noexcept :
 		Base(ptr),
+		m_wasm(std::move(wasm)), // unique_ptr move is noexcept
 		m_runtime(std::move(runtime)) // shared_ptr move is noexcept
 	{}
 
@@ -89,6 +98,7 @@ public:
 	 */
 	WasmModule(WasmModule&& other) noexcept :
 		Base(std::forward<Base>(other)), // base move is noexcept
+		m_wasm(std::move(other.m_wasm)), // unique_ptr move is noexcept
 		m_runtime(std::move(other.m_runtime)) // shared_ptr move is noexcept
 	{}
 
@@ -112,12 +122,14 @@ public:
 	WasmModule& operator=(WasmModule&& other)
 	{
 		Base::operator=(std::forward<Base>(other));
+		m_wasm = std::move(other.m_wasm); // unique_ptr move is noexcept
 		m_runtime = std::move(other.m_runtime); // shared_ptr move is noexcept
 		return *this;
 	}
 
 private:
 
+	std::unique_ptr<std::vector<uint8_t> > m_wasm;
 	std::shared_ptr<WasmRuntime> m_runtime;
 
 }; // class WasmModule

@@ -99,7 +99,7 @@ set(
 FetchContent_Declare(
 	git_wasm_micro_runtime_sgx
 	GIT_REPOSITORY https://github.com/zhenghaven/wasm-micro-runtime.git
-	GIT_TAG        origin/decent-sgx
+	GIT_TAG        origin/decent-sgx-1.3.1
 	SOURCE_SUBDIR  product-mini/platforms/decent-sgx
 )
 FetchContent_MakeAvailable(git_wasm_micro_runtime_sgx)
@@ -108,7 +108,7 @@ FetchContent_MakeAvailable(git_wasm_micro_runtime_sgx)
 FetchContent_Declare(
 	git_wasm_micro_runtime_reg
 	GIT_REPOSITORY https://github.com/zhenghaven/wasm-micro-runtime.git
-	GIT_TAG        origin/decent-sgx
+	GIT_TAG        origin/decent-sgx-1.3.1
 )
 FetchContent_MakeAvailable(git_wasm_micro_runtime_reg)
 target_include_directories(
