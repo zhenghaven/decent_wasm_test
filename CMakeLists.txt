@@ -83,6 +83,18 @@ simplecmakescripts_enable()
 
 # Setup WASM options
 set(
+	WAMR_BUILD_FAST_JIT     1
+	CACHE INTERNAL
+	"Enable WAMR Fast JIT"
+	FORCE
+)
+set(
+	WAMR_BUILD_AOT          1
+	CACHE INTERNAL
+	"Enable WAMR AoT support"
+	FORCE
+)
+set(
 	WAMR_BUILD_LIBC_WASI    0
 	CACHE INTERNAL
 	"Disable WAMR Libc WASI support"
@@ -92,6 +104,12 @@ set(
 	WAMR_BUILD_MULTI_MODULE 1
 	CACHE INTERNAL
 	"Enable WAMR Multiple modules support"
+	FORCE
+)
+set(
+	ASMJIT_STATIC           TRUE
+	CACHE BOOL
+	"Buid ASMJIT as static library"
 	FORCE
 )
 

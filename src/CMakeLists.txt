@@ -41,6 +41,7 @@ decent_enclave_add_target_sgx(decent_wasm_test
 		$<$<CONFIG:Release>:${RELEASE_OPTIONS}>
 	TRUSTED_LINK_OPT   ""
 	TRUSTED_LINK_LIB
+		IntelSGX::Trusted::pthread
 		vmlib_decent_sgx
 		DecentWasmRuntime
 		DecentWasmWat_core
