@@ -12,6 +12,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 
 from typing import Dict, List, Tuple
 
@@ -73,10 +74,12 @@ output = {
 
 def ParseTimePrintout(
 	env: str,
-	printoutLines: List[str]
+	printoutLines: List[str],
+	parseCounter: bool = False
 ) -> Tuple[int, int, int]:
 	benchStart = f'[{env}] Benchmark started'
 	benchStop = f'[{env}] Benchmark stopped'
+	threshold = f'[{env}] Threshold:'
 
 	i = 0
 	for line in printoutLines:
@@ -93,7 +96,8 @@ def ParseTimePrintout(
 	):
 		raise ValueError('Cannot find benchmark stop line')
 
-	benchStopLine = printoutLines[i + 1]
+	i += 1
+	benchStopLine = printoutLines[i]
 
 	TIME_REGEX = r'\(\s*Started\s+\@\s+(\d+)\s+us\s*,\s*ended\s+\@\s+(\d+)\s+us\s*,\s+spent\s+(\d+)\s+us\s*\)'
 	m = re.search(TIME_REGEX, benchStopLine)
@@ -105,6 +109,27 @@ def ParseTimePrintout(
 		int(m.group(2)),
 		int(m.group(3)),
 	]
+
+	if parseCounter:
+		i += 1
+		for line in printoutLines[i:]:
+			if threshold in line:
+				break
+			i += 1
+
+		if i == len(printoutLines):
+			raise ValueError('Cannot find threshold line')
+
+		thresholdLine = printoutLines[i]
+		THRESHOLD_REGEX = r'\s+Threshold\s*:\s*(\d+)\s*,\s*Counter\s*:\s*(\d+)\s*'
+		m = re.search(THRESHOLD_REGEX, thresholdLine)
+		if m is None:
+			raise ValueError(f'Cannot parse threshold line "{thresholdLine}"')
+
+		res.append([
+			int(m.group(1)),
+			int(m.group(2)),
+		])
 
 	print(benchStopLine, res)
 
@@ -138,9 +163,9 @@ def ParseOneEnvTimePrintout(
 
 	return {
 		# 'plain': [ plain_begin, plain_end, plain_duration ],
-		'plain': ParseTimePrintout(env, plainPrintoutLines),
+		'plain': ParseTimePrintout(env, plainPrintoutLines, parseCounter=False),
 		# 'inst':  [ inst_begin, inst_end, inst_duration ],
-		'inst':  ParseTimePrintout(env, instPrintoutLines),
+		'inst':  ParseTimePrintout(env, instPrintoutLines, parseCounter=True),
 	}
 
 
@@ -156,74 +181,110 @@ def ParseAllEnvTimePrintout(
 	)
 
 	return {
-		# 'untrusted': {
+		# 'Untrusted': {
 		#    'plain': [ plain_begin, plain_end, plain_duration ],
 		#    'inst':  [ inst_begin, inst_end, inst_duration ],
 		# }
-		'untrusted': ParseOneEnvTimePrintout('Untrusted', untrustedPrintoutLines),
-		# 'enclave': {
+		'Untrusted': ParseOneEnvTimePrintout('Untrusted', untrustedPrintoutLines),
+		# 'Enclave': {
 		#    'plain': [ plain_begin, plain_end, plain_duration ],
 		#    'inst':  [ inst_begin, inst_end, inst_duration ],
 		# }
-		'enclave': ParseOneEnvTimePrintout('Enclave', enclavePrintoutLines),
+		'Enclave': ParseOneEnvTimePrintout('Enclave', enclavePrintoutLines),
 	}
 
 
-REPEAT_TIMES = 3
+def RunTestsAndCollectData() -> None:
+	REPEAT_TIMES = 3
+
+	for testCase in TEST_CASES:
+		testCasePath = os.path.join(CURR_DIR, testCase)
+		benchmarkPath = os.path.join(BENCHMARK_BUILD_DIR, BENCHMARKER_BIN)
+
+		output['raw'][testCase] = []
+		output['measurement'][testCase] = []
+
+		cmd = [
+			benchmarkPath,
+			testCasePath + '.wasm',
+			testCasePath + '.nopt.wasm',
+		]
+		print(' '.join(cmd))
+
+		for i in range(REPEAT_TIMES):
+			with subprocess.Popen(
+				cmd,
+				stdout=subprocess.PIPE,
+				stderr=subprocess.PIPE,
+				cwd=BENCHMARK_BUILD_DIR,
+			) as proc:
+				stdout, stderr = proc.communicate()
+				stdout = stdout.decode('utf-8', errors='replace')
+				stderr = stderr.decode('utf-8', errors='replace')
+
+				output['raw'][testCase].append({
+					'stdout': stdout,
+					'stderr': stderr,
+					'returncode': proc.returncode,
+				})
+
+				if proc.returncode != 0:
+					print('Benchmark failed for: ' + testCase)
+
+					print('##################################################')
+					print('## STDOUT')
+					print('##################################################')
+					print(stdout)
+					print()
+
+					print('##################################################')
+					print('## STDERR')
+					print('##################################################')
+					print(stderr)
+					print()
+
+					exit(1)
+
+				printoutLines = stdout.splitlines()
+				output['measurement'][testCase].append(ParseAllEnvTimePrintout(printoutLines))
 
 
-for testCase in TEST_CASES:
-	testCasePath = os.path.join(CURR_DIR, testCase)
-	benchmarkPath = os.path.join(BENCHMARK_BUILD_DIR, BENCHMARKER_BIN)
-
-	output['raw'][testCase] = []
-	output['measurement'][testCase] = []
-
-	cmd = [
-		benchmarkPath,
-		testCasePath + '.wasm',
-		testCasePath + '.nopt.wasm',
-	]
-	print(' '.join(cmd))
-
-	for i in range(REPEAT_TIMES):
-		with subprocess.Popen(
-			cmd,
-			stdout=subprocess.PIPE,
-			stderr=subprocess.PIPE,
-			cwd=BENCHMARK_BUILD_DIR,
-		) as proc:
-			stdout, stderr = proc.communicate()
-			stdout = stdout.decode('utf-8', errors='replace')
-			stderr = stderr.decode('utf-8', errors='replace')
-
-			output['raw'][testCase].append({
-				'stdout': stdout,
-				'stderr': stderr,
-				'returncode': proc.returncode,
-			})
-
-			if proc.returncode != 0:
-				print('Benchmark failed for: ' + testCase)
-
-				print('##################################################')
-				print('## STDOUT')
-				print('##################################################')
-				print(stdout)
-				print()
-
-				print('##################################################')
-				print('## STDERR')
-				print('##################################################')
-				print(stderr)
-				print()
-
-				exit(1)
-
-			printoutLines = stdout.splitlines()
-			output['measurement'][testCase].append(ParseAllEnvTimePrintout(printoutLines))
+		with open(os.path.join(PROJ_BUILD_DIR, 'benchmark.json'), 'w') as f:
+			json.dump(output, f, indent='\t')
 
 
-	with open(os.path.join(PROJ_BUILD_DIR, 'benchmark.json'), 'w') as f:
-		json.dump(output, f, indent='\t')
+def ReProcRawData(jsonFilePath: str) -> None:
+	with open(jsonFilePath, 'r') as f:
+		jsonFile = json.load(f)
+
+	rawData = jsonFile['raw']
+
+	newMeasurements = {}
+
+	for testCase, results in rawData.items():
+		newMeasurements[testCase] = []
+		for repeatRes in results:
+			printoutLines = repeatRes['stdout'].splitlines()
+			newMeasurements[testCase].append(ParseAllEnvTimePrintout(printoutLines))
+
+	jsonFile['measurement'] = newMeasurements
+
+	with open(jsonFilePath, 'w') as f:
+		json.dump(jsonFile, f, indent='\t')
+
+
+def main() -> None:
+	if len(sys.argv) > 1:
+		if sys.argv[1] == 'reproc':
+			ReProcRawData(sys.argv[2])
+			return
+		else:
+			print('Unknown command')
+			return
+	else:
+		RunTestsAndCollectData()
+
+
+if __name__ == '__main__':
+	main()
 
