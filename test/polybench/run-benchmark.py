@@ -76,7 +76,7 @@ def ParseTimePrintout(
 	env: str,
 	printoutLines: List[str],
 	parseCounter: bool = False
-) -> Tuple[int, int, int]:
+) -> list:
 	benchStart = f'[{env}] Benchmark started'
 	benchStop = f'[{env}] Benchmark stopped'
 	threshold = f'[{env}] Threshold:'
@@ -174,10 +174,15 @@ def ParseAllEnvTimePrintout(
 ) -> Dict[str, List[int]]:
 
 	enclaveLaunch = '[Enclave] Running plain wasm'
+	nativeLaunch = '[Native] [PolyBench]'
 
 	untrustedPrintoutLines, enclavePrintoutLines = SplitLines(
 		printoutLines,
 		enclaveLaunch
+	)
+	enclavePrintoutLines, nativePrintoutLines = SplitLines(
+		enclavePrintoutLines,
+		nativeLaunch
 	)
 
 	return {
@@ -191,7 +196,47 @@ def ParseAllEnvTimePrintout(
 		#    'inst':  [ inst_begin, inst_end, inst_duration ],
 		# }
 		'Enclave': ParseOneEnvTimePrintout('Enclave', enclavePrintoutLines),
+		# 'Native': {
+		#    'plain': [ plain_begin, plain_end, plain_duration ],
+		# }
+		'Native': {
+			'plain': ParseTimePrintout('Native', nativePrintoutLines, parseCounter=False)
+		},
 	}
+
+
+def RunProgram(cmd: List[str]) -> Tuple[str, str, int]:
+	cmdStr = ' '.join(cmd)
+	print(f'Running: {cmdStr}')
+
+	with subprocess.Popen(
+		cmd,
+		stdout=subprocess.PIPE,
+		stderr=subprocess.PIPE,
+		cwd=BENCHMARK_BUILD_DIR,
+	) as proc:
+		stdout, stderr = proc.communicate()
+		stdout = stdout.decode('utf-8', errors='replace')
+		stderr = stderr.decode('utf-8', errors='replace')
+
+		if proc.returncode != 0:
+			print('Benchmark failed')
+
+			print('##################################################')
+			print('## STDOUT')
+			print('##################################################')
+			print(stdout)
+			print()
+
+			print('##################################################')
+			print('## STDERR')
+			print('##################################################')
+			print(stderr)
+			print()
+
+			raise RuntimeError('Benchmark failed')
+
+		return stdout, stderr, proc.returncode
 
 
 def RunTestsAndCollectData() -> None:
@@ -200,51 +245,32 @@ def RunTestsAndCollectData() -> None:
 	for testCase in TEST_CASES:
 		testCasePath = os.path.join(CURR_DIR, testCase)
 		benchmarkPath = os.path.join(BENCHMARK_BUILD_DIR, BENCHMARKER_BIN)
+		nativePath = os.path.join(CURR_DIR, testCase + '.app')
 
 		output['raw'][testCase] = []
 		output['measurement'][testCase] = []
 
-		cmd = [
+		decentCmd = [
 			benchmarkPath,
 			testCasePath + '.wasm',
 			testCasePath + '.nopt.wasm',
 		]
-		print(' '.join(cmd))
+
+		nativeCmd = [ nativePath ]
 
 		for i in range(REPEAT_TIMES):
-			with subprocess.Popen(
-				cmd,
-				stdout=subprocess.PIPE,
-				stderr=subprocess.PIPE,
-				cwd=BENCHMARK_BUILD_DIR,
-			) as proc:
-				stdout, stderr = proc.communicate()
-				stdout = stdout.decode('utf-8', errors='replace')
-				stderr = stderr.decode('utf-8', errors='replace')
+				decentStdout, decentStderr, decentRetcode = RunProgram(decentCmd)
+				nativeStdout, nativeStderr, nativeRetcode = RunProgram(nativeCmd)
+
+				stdout = decentStdout + '\n' + nativeStdout
+				stderr = decentStderr + '\n' + nativeStderr
+				assert decentRetcode == nativeRetcode
 
 				output['raw'][testCase].append({
 					'stdout': stdout,
 					'stderr': stderr,
-					'returncode': proc.returncode,
+					'returncode': decentRetcode,
 				})
-
-				if proc.returncode != 0:
-					print('Benchmark failed for: ' + testCase)
-
-					print('##################################################')
-					print('## STDOUT')
-					print('##################################################')
-					print(stdout)
-					print()
-
-					print('##################################################')
-					print('## STDERR')
-					print('##################################################')
-					print(stderr)
-					print()
-
-					exit(1)
-
 				printoutLines = stdout.splitlines()
 				output['measurement'][testCase].append(ParseAllEnvTimePrintout(printoutLines))
 

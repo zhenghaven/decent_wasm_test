@@ -53,18 +53,19 @@ TEST_CASES = [
 	'jacobi-2d',
 	'seidel-2d',
 ]
-SUFFIXES = [
-	'.wasm',
-	'.nopt.wasm',
+FILENAME_FORMATS = [
+	(os.path.join('native', '{testname}.app'),     '{testname}.app'),
+	(os.path.join('wasm', '{testname}.wasm'),      '{testname}.wasm'),
+	(os.path.join('wasm', '{testname}.nopt.wasm'), '{testname}.nopt.wasm'),
 ]
 
 
-TEST_CASES_FILES = [ x + y for y in SUFFIXES for x in TEST_CASES ]
+TEST_CASES_FILES = [ (ySrc.format(testname=x), yDst.format(testname=x)) for ySrc, yDst in FILENAME_FORMATS for x in TEST_CASES ]
 
-for testCase in TEST_CASES_FILES:
-	src = os.path.join(COUNTER_POLY_DIR, testCase)
-	dst = os.path.join(CURR_DIR, testCase)
-	shutil.copyfile(src, dst)
+for srcFilebase, dstFilebase in TEST_CASES_FILES:
+	src = os.path.join(COUNTER_POLY_DIR, srcFilebase)
+	dst = os.path.join(CURR_DIR, dstFilebase)
+	shutil.copy(src, dst)
 
 print(f'Copied {len(TEST_CASES_FILES)} files from {COUNTER_POLY_DIR} to {CURR_DIR}')
 
