@@ -17,7 +17,7 @@ import plotly.graph_objects as go
 
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJ_BUILD_DIR = os.path.join(CURR_DIR, os.pardir, os.pardir, 'build')
+PROJ_BUILD_DIR = os.path.join(CURR_DIR, os.pardir, os.pardir, 'build-release')
 BENCH_RES_FILE = os.path.join(PROJ_BUILD_DIR, 'benchmark.json')
 GRAPH_FILE_BASE = os.path.join(PROJ_BUILD_DIR, 'benchmark')
 

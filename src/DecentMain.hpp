@@ -50,25 +50,29 @@ inline bool DecentWasmMain(
 		};
 		uint64_t threshold = std::numeric_limits<uint64_t>::max() / 2;
 
-		MainRunner(
-			wasmRt,
-			wasmBytecode,
-			eventId,
-			msgContent,
-			 1 * 1024 * 1024, // mod stack:  1 MB
-			16 * 1024 * 1024, // mod heap:  16 MB
-			 1 * 1024 * 1024  // exec stack: 1 MB
-		).RunPlain();
+		{
+			MainRunner(
+				wasmRt,
+				wasmBytecode,
+				eventId,
+				msgContent,
+				1 * 1024 * 1024,  // mod stack:  1 MB
+				16 * 1024 * 1024, // mod heap:  16 MB
+				1 * 1024 * 1024   // exec stack: 1 MB
+			).RunPlain();
+		}
 
-		MainRunner(
-			wasmRt,
-			instWasmBytecode,
-			eventId,
-			msgContent,
-			 1 * 1024 * 1024, // mod stack:  1 MB
-			16 * 1024 * 1024, // mod heap:  16 MB
-			 1 * 1024 * 1024  // exec stack: 1 MB
-		).RunInstrumented(threshold);
+		{
+			MainRunner(
+				wasmRt,
+				instWasmBytecode,
+				eventId,
+				msgContent,
+				1 * 1024 * 1024,  // mod stack:  1 MB
+				16 * 1024 * 1024, // mod heap:  16 MB
+				1 * 1024 * 1024   // exec stack: 1 MB
+			).RunInstrumented(threshold);
+		}
 
 		return true;
 	}

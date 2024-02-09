@@ -18,7 +18,7 @@ from typing import Dict, List, Tuple
 
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJ_BUILD_DIR = os.path.join(CURR_DIR, os.pardir, os.pardir, 'build')
+PROJ_BUILD_DIR = os.path.join(CURR_DIR, os.pardir, os.pardir, 'build-release')
 BENCHMARK_BUILD_DIR = os.path.join(PROJ_BUILD_DIR, 'src')
 BENCHMARKER_BIN = 'decent_wasm_test'
 TEST_CASES = [
@@ -145,6 +145,7 @@ def SplitLines(
 		if splitLine in inLines[i]:
 			return inLines[:i], inLines[i:]
 
+	print('\n'.join(inLines))
 	raise ValueError(f'Cannot find split line: {splitLine}')
 
 
@@ -214,6 +215,7 @@ def RunProgram(cmd: List[str]) -> Tuple[str, str, int]:
 		stdout=subprocess.PIPE,
 		stderr=subprocess.PIPE,
 		cwd=BENCHMARK_BUILD_DIR,
+		preexec_fn=lambda : os.nice(-19),
 	) as proc:
 		stdout, stderr = proc.communicate()
 		stdout = stdout.decode('utf-8', errors='replace')
