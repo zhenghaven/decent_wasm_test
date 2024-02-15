@@ -85,15 +85,18 @@ def DatasetPlotBar(
 	xData: List[Any],
 	yDataset: dict
 ) -> go.Bar:
+	yMid = [ statistics.median(yDataset[x]) for x in xData ] # if x != 'floyd-warshall'
+	yPlus = [ (yDataset[x][-1] - statistics.median(yDataset[x])) for x in xData ] # if x != 'floyd-warshall'
+	yMinus = [ (statistics.median(yDataset[x]) - yDataset[x][0]) for x in xData ] # if x != 'floyd-warshall'
 	return go.Bar(
 		name=name,
 		x=xData,
-		y=[ statistics.median(yDataset[x]) for x in xData ], # if x != 'floyd-warshall'
+		y=yMid,
 		error_y=dict(
 			type='data',
 			symmetric=False,
-			array=[ yDataset[x][-1] - statistics.median(yDataset[x]) for x in xData ], # if x != 'floyd-warshall'
-			arrayminus=[ statistics.median(yDataset[x]) - yDataset[x][0] for x in xData ], # if x != 'floyd-warshall'
+			array=yPlus,
+			arrayminus=yMinus,
 		),
 	)
 

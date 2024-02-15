@@ -13,9 +13,12 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 from typing import Dict, List, Tuple
 
+NICE_ADJUST = -20
+AFFINITY = { 3,}
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJ_BUILD_DIR = os.path.join(CURR_DIR, os.pardir, os.pardir, 'build-release')
@@ -206,6 +209,18 @@ def ParseAllEnvTimePrintout(
 	}
 
 
+def SetPriorityAndAffinity() -> None:
+	# Set nice
+	os.nice(NICE_ADJUST)
+
+	# Set real-time priority
+	schedParam = os.sched_param(os.sched_get_priority_max(os.SCHED_FIFO))
+	os.sched_setscheduler(0, os.SCHED_FIFO, schedParam)
+
+	# Set affinity
+	os.sched_setaffinity(0, AFFINITY)
+
+
 def RunProgram(cmd: List[str]) -> Tuple[str, str, int]:
 	cmdStr = ' '.join(cmd)
 	print(f'Running: {cmdStr}')
@@ -215,11 +230,13 @@ def RunProgram(cmd: List[str]) -> Tuple[str, str, int]:
 		stdout=subprocess.PIPE,
 		stderr=subprocess.PIPE,
 		cwd=BENCHMARK_BUILD_DIR,
-		preexec_fn=lambda : os.nice(-19),
+		preexec_fn=lambda : SetPriorityAndAffinity(),
 	) as proc:
 		stdout, stderr = proc.communicate()
 		stdout = stdout.decode('utf-8', errors='replace')
 		stderr = stderr.decode('utf-8', errors='replace')
+
+		time.sleep(5) # Wait for the system to settle down
 
 		if proc.returncode != 0:
 			print('Benchmark failed')
