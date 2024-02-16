@@ -24,6 +24,8 @@ inline bool DecentWasmMain(
 )
 {
 	using namespace DecentWasmRuntime;
+	static constexpr size_t sk_repeatTime = 5;
+
 	try
 	{
 		std::vector<uint8_t> wasmBytecode(
@@ -38,7 +40,7 @@ inline bool DecentWasmMain(
 		auto wasmRt = SharedWasmRuntime(
 			Internal::make_unique<WasmRuntimeStaticHeap>(
 				PrintCStr,
-				24 * 1024 * 1024 // 24 MB
+				70 * 1024 * 1024 // 70 MB
 			)
 		);
 
@@ -51,27 +53,40 @@ inline bool DecentWasmMain(
 		uint64_t threshold = std::numeric_limits<uint64_t>::max() / 2;
 
 		{
-			MainRunner(
+			auto runner = MainRunner(
 				wasmRt,
 				wasmBytecode,
 				eventId,
 				msgContent,
 				1 * 1024 * 1024,  // mod stack:  1 MB
-				16 * 1024 * 1024, // mod heap:  16 MB
+				64 * 1024 * 1024, // mod heap:  64 MB
 				1 * 1024 * 1024   // exec stack: 1 MB
-			).RunPlain();
+			);
+			for (size_t i = 0; i < sk_repeatTime; ++i)
+			{
+				PrintCStr("\n\nStarting to run Decent WASM program (type=plain)...\n");
+				runner.RunPlain();
+				PrintCStr("Finished to run Decent WASM program (type=plain)...\n");
+			}
 		}
 
 		{
-			MainRunner(
+			auto runner = MainRunner(
 				wasmRt,
 				instWasmBytecode,
 				eventId,
 				msgContent,
 				1 * 1024 * 1024,  // mod stack:  1 MB
-				16 * 1024 * 1024, // mod heap:  16 MB
+				64 * 1024 * 1024, // mod heap:  64 MB
 				1 * 1024 * 1024   // exec stack: 1 MB
-			).RunInstrumented(threshold);
+			);
+			for (size_t i = 0; i < sk_repeatTime; ++i)
+			{
+				PrintCStr("\n\nStarting to run Decent WASM program (type=instrumented)...\n");
+				runner.RunInstrumented(threshold);
+				runner.ResetThresholdAndCounter();
+				PrintCStr("Finished to run Decent WASM program (type=instrumented)...\n");
+			}
 		}
 
 		return true;

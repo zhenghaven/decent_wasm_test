@@ -42,6 +42,26 @@ struct WasmModuleInstanceGlobalGetter<uint64_t>
 		}
 		return retVal;
 	}
+
+	static uint64_t& GetRef(
+		wasm_module_inst_t const module_inst,
+		wasm_global_inst_t const global_inst
+	)
+	{
+		void* p = wasm_runtime_get_global_addr(module_inst, global_inst);
+		return p == nullptr ?
+			throw Exception("Failed to get global address.") :
+			*reinterpret_cast<uint64_t*>(p);
+	}
+
+	static void Set(
+		wasm_module_inst_t const module_inst,
+		wasm_global_inst_t const global_inst,
+		uint64_t val
+	)
+	{
+		GetRef(module_inst, global_inst) = val;
+	}
 }; // struct WasmModuleInstanceGlobalGetter<uint64_t>
 
 template<>
@@ -62,6 +82,26 @@ struct WasmModuleInstanceGlobalGetter<uint32_t>
 			throw Exception("Failed to get global value.");
 		}
 		return retVal;
+	}
+
+	static uint32_t& GetRef(
+		wasm_module_inst_t const module_inst,
+		wasm_global_inst_t const global_inst
+	)
+	{
+		void* p = wasm_runtime_get_global_addr(module_inst, global_inst);
+		return p == nullptr ?
+			throw Exception("Failed to get global address.") :
+			*reinterpret_cast<uint32_t*>(p);
+	}
+
+	static void Set(
+		wasm_module_inst_t const module_inst,
+		wasm_global_inst_t const global_inst,
+		uint32_t val
+	)
+	{
+		GetRef(module_inst, global_inst) = val;
 	}
 }; // struct WasmModuleInstanceGlobalGetter<uint32_t>
 
@@ -180,6 +220,18 @@ public:
 			throw Exception("Failed to find global with name " + name);
 		}
 		return WasmModuleInstanceGlobalGetter<_RetType>::Get(ptr, global);
+	}
+
+	template<typename _ValType>
+	void SetGlobal(const std::string& name, const _ValType& val)
+	{
+		pointer ptr = const_cast<pointer>(get());
+		auto global = wasm_runtime_lookup_global(ptr, name.c_str());
+		if (global == nullptr)
+		{
+			throw Exception("Failed to find global with name " + name);
+		}
+		WasmModuleInstanceGlobalGetter<_ValType>::Set(ptr, global, val);
 	}
 
 	bool HasException() const noexcept

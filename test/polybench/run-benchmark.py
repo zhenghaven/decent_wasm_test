@@ -69,12 +69,6 @@ TEST_CASES = [
 ]
 
 
-output = {
-	'measurement': {},
-	'raw': {},
-}
-
-
 def ParseTimePrintout(
 	env: str,
 	printoutLines: List[str],
@@ -173,40 +167,129 @@ def ParseOneEnvTimePrintout(
 	}
 
 
+def TryParseStartLine(state: dict, line: str) -> bool:
+	PTYPE_REGEX     = r'\[(\w+)\]\s*Starting to run Decent WASM program\s*\(type=(\w+)\)\.\.\.'
+
+	m = re.search(PTYPE_REGEX, line)
+	if m is None:
+		return False
+	else:
+		# found the beginning of a test run
+		# ensure states are clean
+		assert state['currEnv'] == '', f'Env not clean: {state["currEnv"]}'
+		assert state['currPType'] == '', f'PType not clean: {state["currPType"]}'
+		assert len(state['measurements']) == 0, f'Measurements not clean: {state["measurements"]}'
+
+		# record the labels of the new test run
+		state['currEnv'] = m.group(1)
+		state['currPType'] = m.group(2)
+		return True
+
+
+def TryParseTimeLine(state: dict, line: str) -> bool:
+	TIME_REGEX      = r'\[(\w+)\]\s*Benchmark stopped\.\s*\(\s*Started\s+\@\s+(\d+)\s+us\s*,\s*ended\s+\@\s+(\d+)\s+us\s*,\s+spent\s+(\d+)\s+us\s*\)'
+	m = re.search(TIME_REGEX, line)
+	if m is None:
+		return False
+	else:
+		# found the line with time printout
+		if len(state['measurements']) > 0:
+			raise ValueError('Found multiple time printouts in a single test run')
+		assert state['currEnv'] == m.group(1), f'Env mismatch: {state["currEnv"]} != {m.group(1)}'
+		state['measurements'] = [
+			int(m.group(2)),
+			int(m.group(3)),
+			int(m.group(4)),
+		]
+		paraPart = line[line.find('('):]
+		print(f'{paraPart} \t {state["measurements"]}') # print to double check
+		return True
+
+
+def TryParseCounterLine(state: dict, line: str) -> bool:
+	THRESHOLD_REGEX = r'\[(\w+)\]\s*Threshold\s*:\s*(\d+)\s*,\s*Counter\s*:\s*(\d+)\s*'
+
+	m = re.search(THRESHOLD_REGEX, line)
+	if m is None:
+		return False
+	else:
+		# found the line with counter printout
+		if len(state['measurements']) != 3:
+			raise ValueError('Found counter printout without time printout')
+		if state['currPType'] != 'instrumented':
+			raise ValueError('Found counter printout in a non-instrumented test run')
+		assert state['currEnv'] == m.group(1), f'Env mismatch: {state["currEnv"]} != {m.group(1)}'
+		state['measurements'].append([
+			int(m.group(2)),
+			int(m.group(3)),
+		])
+		return True
+
+
+def TryParseEndLine(state: dict, line: str) -> bool:
+	PTYPE_REGEX     = r'\[(\w+)\]\s*Finished to run Decent WASM program\s*\(type=(\w+)\)\.\.\.'
+
+	m = re.search(PTYPE_REGEX, line)
+	if m is None:
+		return False
+	else:
+		# found the beginning of a test run
+		# ensure labels are consistent
+		assert state['currEnv'] == m.group(1), f'Env mismatch: {state["currEnv"]} != {m.group(1)}'
+		assert state['currPType'] == m.group(2), f'PType mismatch: {state["currPType"]} != {m.group(2)}'
+
+		# recording the test run results
+		if len(state['measurements']) == 0:
+			raise ValueError('Found a test run without time printout')
+		if state['currPType'] == 'instrumented' and len(state['measurements']) != 4:
+			raise ValueError('Found an instrumented test run without counter printout')
+		state['res'][state['currEnv']][state['currPType']].append(state['measurements'])
+
+		# reset state
+		state['currEnv'] = ''
+		state['currPType'] = ''
+		state['measurements'] = []
+
+		return True
+
+
 def ParseAllEnvTimePrintout(
 	printoutLines: List[str]
 ) -> Dict[str, List[int]]:
 
-	enclaveLaunch = '[Enclave] Running plain wasm'
-	nativeLaunch = '[Native] [PolyBench]'
 
-	untrustedPrintoutLines, enclavePrintoutLines = SplitLines(
-		printoutLines,
-		enclaveLaunch
-	)
-	enclavePrintoutLines, nativePrintoutLines = SplitLines(
-		enclavePrintoutLines,
-		nativeLaunch
-	)
-
-	return {
-		# 'Untrusted': {
-		#    'plain': [ plain_begin, plain_end, plain_duration ],
-		#    'inst':  [ inst_begin, inst_end, inst_duration ],
-		# }
-		'Untrusted': ParseOneEnvTimePrintout('Untrusted', untrustedPrintoutLines),
-		# 'Enclave': {
-		#    'plain': [ plain_begin, plain_end, plain_duration ],
-		#    'inst':  [ inst_begin, inst_end, inst_duration ],
-		# }
-		'Enclave': ParseOneEnvTimePrintout('Enclave', enclavePrintoutLines),
-		# 'Native': {
-		#    'plain': [ plain_begin, plain_end, plain_duration ],
-		# }
-		'Native': {
-			'plain': ParseTimePrintout('Native', nativePrintoutLines, parseCounter=False)
+	state = {
+		'res': {
+			'Untrusted': {
+				'plain': [],
+				'instrumented': [],
+			},
+			'Enclave': {
+				'plain': [],
+				'instrumented': [],
+			},
+			'Native': {
+				'plain': [],
+			},
 		},
+
+		'currEnv'  : '',
+		'currPType': '',
+
+		'measurements': [],
 	}
+
+	for line in printoutLines:
+		if TryParseStartLine(state, line):
+			continue
+		elif TryParseTimeLine(state, line):
+			continue
+		elif TryParseCounterLine(state, line):
+			continue
+		elif TryParseEndLine(state, line):
+			continue
+
+	return state['res']
 
 
 def SetPriorityAndAffinity() -> None:
@@ -259,7 +342,12 @@ def RunProgram(cmd: List[str]) -> Tuple[str, str, int]:
 
 
 def RunTestsAndCollectData() -> None:
-	REPEAT_TIMES = 3
+	REPEAT_TIMES = 1
+
+	output = {
+		'measurement': {},
+		'raw': {},
+	}
 
 	for testCase in TEST_CASES:
 		testCasePath = os.path.join(CURR_DIR, testCase)

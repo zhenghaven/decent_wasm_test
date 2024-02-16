@@ -18,10 +18,11 @@ import plotly.graph_objects as go
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJ_BUILD_DIR = os.path.join(CURR_DIR, os.pardir, os.pardir, 'build-release')
-BENCH_RES_FILE = os.path.join(PROJ_BUILD_DIR, 'benchmark.json')
-GRAPH_FILE_BASE = os.path.join(PROJ_BUILD_DIR, 'benchmark')
+BENCH_FILE_BASE = os.path.join(PROJ_BUILD_DIR, 'benchmark-202402160033')
+BENCH_RES_FILE = BENCH_FILE_BASE + '.json'
+GRAPH_FILE_BASE = BENCH_FILE_BASE
 
-REPEAT_TIMES = 3
+WARMUP_TIMES = 2
 
 
 with open(BENCH_RES_FILE, 'r') as f:
@@ -37,33 +38,38 @@ def SelectDataset(
 	group: str,
 	measurements: dict
 ) -> dict:
+	# select all the elapsed time for each test case
 	dataset = {
-			k: [
-			v[i][env][group][2] for i in range(REPEAT_TIMES)
-		] for k,v in measurements.items()
+		k: [ x[2] for x in v[0][env][group] ]
+			for k,v in measurements.items()
 	}
+	# remove the warmup times
 	dataset = {
-		k: sorted(v) for k,v in dataset.items()
+		k: v[WARMUP_TIMES:]
+			for k,v in dataset.items()
 	}
+	# sort the valid data
+	dataset = {
+		k: sorted(v)
+			for k,v in dataset.items()
+	}
+
+	# print the result in text
+	print(f'{env} - {group} dataset:')
+	for k, vs in dataset.items():
+		errPlus = vs[-1] - statistics.median(vs)
+		errPlus = errPlus / 1000
+		errMinus = statistics.median(vs) - vs[0]
+		errMinus = errMinus / 1000
+
+		outStr = f'{k:20}: Elapsed '
+		for v in vs:
+			v = v / 1000
+			outStr += f'{v:10.3f}ms, '
+		outStr += 'Errors: -' + f'{errMinus:10.3f}ms, +' + f'{errPlus:10.3f}ms'
+		print(outStr)
+
 	return dataset
-
-
-def DatasetUs2Ms(dataset: dict) -> dict:
-	return {
-		k: [ x / 1000 for x in v ] for k,v in dataset.items()
-	}
-
-
-def DatasetRange(*args: dict) -> Tuple[Any, Any, Any]:
-	allValues = [ x for arg in args for x in arg.values() ]
-	allValues = sum(allValues, [])
-	allValues = sorted(allValues)
-
-	return (
-		allValues[0],
-		allValues[-1],
-		allValues[-1] - allValues[0],
-	)
 
 
 def DatasetNormalize(dataset: dict, baseDataset: dict) -> dict:
@@ -116,7 +122,7 @@ untrustedPlainDurations = (SelectDataset(
 # Untrusted - Instrumented
 untrustedInstDurations = (SelectDataset(
 	'Untrusted',
-	'inst',
+	'instrumented',
 	benchmarkRes['measurement']
 ))
 # Enclave - Plain
@@ -128,7 +134,7 @@ enclavePlainDurations = (SelectDataset(
 # Enclave - Instrumented
 enclaveInstDurations = (SelectDataset(
 	'Enclave',
-	'inst',
+	'instrumented',
 	benchmarkRes['measurement']
 ))
 
